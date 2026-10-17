@@ -1,0 +1,14 @@
+{
+  "name": "Dame — notebook draughts",
+  "short_name": "Dame",
+  "description": "Ghanaian-style draughts drawn in a school notebook.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdfbf3",
+  "theme_color": "#fdfbf3",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

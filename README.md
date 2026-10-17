@@ -20,6 +20,14 @@ npm start            # python3 -m http.server 8080
 
 Then open http://localhost:8080 (use your phone's browser on the same network for the real feel).
 
+## Publish on GitHub Pages
+
+`.github/workflows/pages.yml` runs the tests and deploys the site on every push. One-time setup:
+
+1. The repo must be public (or on a paid plan that allows Pages for private repos).
+2. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
+3. Re-run the workflow from the **Actions** tab. The game is then at `https://codeclif.github.io/dame/`.
+
 ## Test
 
 ```sh

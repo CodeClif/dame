@@ -1,10 +1,11 @@
 // Offline support: precache the whole game, then serve cache-first.
-const VERSION = 'dame-v6';
+const VERSION = 'dame-v7';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'css/style.css',
   'js/app.js', 'js/rules.js', 'js/ai.js', 'js/ai-worker.js', 'js/characters.js', 'js/sketch.js', 'js/sound.js',
   'js/config.js', 'js/protocol.js', 'js/realtime.js', 'js/online.js', 'js/profile.js', 'js/progress.js',
-  'js/puzzles.js', 'js/leaderboard.js', 'js/replay.js', 'data/puzzles.json', 'data/groups.json',
+  'js/puzzles.js', 'js/leaderboard.js', 'js/replay.js', 'js/analytics.js', 'data/puzzles.json', 'data/groups.json',
+  'privacy.html', 'terms.html', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 

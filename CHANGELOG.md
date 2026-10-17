@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0 — Solid foundations
+
+- Full end-to-end test script (`npm run e2e`, 39 checks): forced captures, multi-jumps, crowning, both rule toggles, draws, no-moves-left, vs-computer and undo, online resign, reload/resume, rematch, a connection dropped mid-move, play with the database down, and the database's security rules.
+- Fixed: a result card from a finished game could pop up over a game restarted within a second.
+- Fixed: the page's mode attribute shared a name with the menu buttons' (renamed to `data-play`).
+- Database: explicit deny-all policies on every table, an index for reports, a retention job, and a test that fails on any secret key in the site.
+- Link previews for WhatsApp and others (Open Graph + Twitter tags, a drawn 1200×630 share card).
+- Installable app: PNG and maskable icons, Apple touch icon, iOS tags, app shortcuts (daily puzzle, play the computer) and an install button/instructions in Settings.
+- Anonymous daily counts (games started/finished, invites opened, puzzles played/shared) with an off switch.
+- Plain-language privacy and terms pages, linked from Settings, the nickname fields and the leaderboard.
+
 ## 1.3.2
 
 - Every pop-up has a ✕ close button, including after sharing a result.

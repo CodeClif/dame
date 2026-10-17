@@ -7,6 +7,7 @@ import { encodeMove, decodeMove } from './protocol.js';
 import { onlineConfigured } from './config.js';
 import { emptyProgress, isUnlocked, recordGame, recordPuzzleProgress } from './progress.js';
 import { getNick, getGroup } from './profile.js';
+import { count, setCountsAllowed } from './analytics.js';
 import { puzzleState, bestDefence, dayNumber, puzzleForDay, recordSolve, currentStreak, shareText, winningMove } from './puzzles.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -27,6 +28,7 @@ const settings = {
   team: 'forest',
   theme: 'pencil',
   speed: false, // speed mode: 10 seconds a turn
+  counts: true, // anonymous daily totals (see privacy.html)
   night: null, // null follows the phone's light/dark setting
   lineups: { forest: [...TEAM_ROSTER.forest], market: [...TEAM_ROSTER.market] },
 };
@@ -49,6 +51,7 @@ function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* ignore */ }
 }
 setSoundEnabled(settings.sound);
+setCountsAllowed(() => settings.counts);
 
 // ---------- look: board palette + night mode ----------
 
@@ -339,7 +342,8 @@ function newGame(config) {
     if (!m) break;
     commitMove(m);
   }
-  document.body.dataset.mode = config.mode;
+  document.body.dataset.play = config.mode;
+  if (!config.moves?.length) count(`game_start_${config.mode}`);
   go('game');
   $('#board-art').innerHTML = boardSVG(7 + Math.floor(Math.random() * 1000));
   const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
@@ -525,6 +529,7 @@ async function openPuzzle() {
   try { list = await loadPuzzles(); } catch { openModal('<h2>No puzzle yet</h2><p>Connect once to download the puzzles, then they work offline.</p><div class="actions"><button class="sketch-btn big" data-act="close">OK</button></div>'); return; }
   const day = dayNumber();
   const p = puzzleForDay(list, day);
+  count('puzzle_play');
   const bottom = settings.team;
   newGame({
     mode: 'puzzle',
@@ -557,12 +562,15 @@ function puzzleReply() {
 
 function puzzleOver(won) {
   if (G.over) return;
+  const endToken = G.token;
   G.over = true;
   G.busy = false;
   clearInterval(G.clockTimer);
   updateBars();
   drawOverlay();
   const { day, par, used, id } = G.puzzle;
+  count('game_finish_puzzle');
+  if (won) count('puzzle_solve');
   const today = day === dayNumber();
   let notes = '';
   let streak = currentStreak(puzzleRecord(), dayNumber());
@@ -590,12 +598,13 @@ function puzzleOver(won) {
   const text = shareText({ day, movesUsed: used, par, streak, url: location.origin + location.pathname });
   const clip = clipButton();
   setTimeout(() => {
+    if (G.token !== endToken || !G.over) return; // the game was restarted meanwhile
     openModal(won
       ? `<h2>Solved! 🧩</h2><p>Puzzle #${day} · ${used}/${par} move${par > 1 ? 's' : ''}<br><b>🔥 ${streak}-day streak</b></p>${notes}
         <div class="actions">
           <div class="pair">
             <button class="sketch-btn big" data-act="share">Share</button>
-            <a class="sketch-btn big wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>
+            <a class="sketch-btn big wa" data-act="wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>
           </div>
           <div class="pair">${clip}<button class="sketch-btn" data-act="home">Main menu</button></div>
         </div>
@@ -606,7 +615,9 @@ function puzzleOver(won) {
           <div class="pair"><button class="sketch-btn" data-act="show">Show first move</button>
           <button class="sketch-btn" data-act="home">Main menu</button></div>
         </div>`, {
+      wa: () => count('puzzle_share'),
       share: async () => {
+        count('puzzle_share');
         if (navigator.share) { try { await navigator.share({ text }); return; } catch { /* cancelled */ } }
         try { await navigator.clipboard.writeText(text); $('#sheet .note').textContent = 'Result copied — paste it anywhere.'; } catch { /* ignore */ }
       },
@@ -987,7 +998,9 @@ $('#menu-btn').addEventListener('click', () => {
 function endGame(result) {
   if (G.over) return;
   if (G.mode === 'puzzle') { puzzleOver(result.winner === 1); return; }
+  const endToken = G.token;
   clearInterval(G.clockTimer);
+  count(`game_finish_${G.mode}`);
   G.over = true;
   G.busy = false;
   updateBars();
@@ -1040,6 +1053,7 @@ function endGame(result) {
         <button class="sketch-btn" data-act="leave">Leave the room</button>
       </div>`;
   setTimeout(() => {
+    if (G.token !== endToken || !G.over) return; // the game was restarted meanwhile
     if (G.mode === 'online') {
       openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>${notes}${onlineActions.replace('</div>', `${clip}</div>`)}
         <div class="ad-slot" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>`, {
@@ -1239,6 +1253,7 @@ const swatch = (t) => `<svg viewBox="0 0 40 40"><rect width="40" height="40" fil
 
 function renderSettings() {
   $$('[data-setting]').forEach((input) => { input.checked = !!settings[input.dataset.setting]; });
+  paintInstall();
   $('#themes').innerHTML = THEMES.map((t) => `<button class="theme-btn${t.id === settings.theme ? ' on' : ''}" data-theme-id="${t.id}" aria-pressed="${t.id === settings.theme}">${swatch(t)}<span>${t.name}</span></button>`).join('');
   $('#night-toggle').checked = isNight();
 }
@@ -1311,6 +1326,31 @@ $('#friend-btn').addEventListener('click', async () => {
   (await online()).open();
 });
 
+// ---------- install as an app ----------
+
+let installPrompt = null;
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function paintInstall() {
+  const text = $('#install-text');
+  const btn = $('#install-btn');
+  if (isStandalone()) { text.textContent = 'Installed — you’re playing the app version. ✓'; btn.hidden = true; return; }
+  if (installPrompt) { text.textContent = 'Opens like an app and works offline.'; btn.hidden = false; return; }
+  btn.hidden = true;
+  text.innerHTML = isIOS()
+    ? 'On iPhone: open this page in <b>Safari</b>, tap the <b>Share</b> button (square with an arrow), then <b>Add to Home Screen</b>.'
+    : 'In Chrome: open the <b>⋮</b> menu and choose <b>Add to Home screen</b> or <b>Install app</b>.';
+}
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; paintInstall(); });
+window.addEventListener('appinstalled', () => { installPrompt = null; count('app_install'); paintInstall(); });
+$('#install-btn').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice.catch(() => {});
+  installPrompt = null;
+  paintInstall();
+});
+
 // ---------- boot ----------
 
 document.body.insertAdjacentHTML('afterbegin', DEFS_SVG);
@@ -1320,8 +1360,15 @@ renderHome();
 $('#friend-btn').hidden = !onlineConfigured();
 $('#leaders-btn').hidden = !onlineConfigured();
 refreshPuzzleButton();
+// App shortcuts from the home-screen icon.
+{
+  const goTo = new URLSearchParams(location.search).get('go');
+  if (goTo === 'puzzle') { document.body.classList.add('skip-intro'); openPuzzle(); }
+  if (goTo === 'cpu') { document.body.classList.add('skip-intro'); setup.mode = 'cpu'; go('setup'); }
+}
 // An invite link (?room=CODE) goes straight to the join screen.
 if (new URLSearchParams(location.search).has('room')) {
+  count('invite_open', { once: true });
   document.body.classList.add('skip-intro');
   online().then((m) => m.open(new URLSearchParams(location.search).get('room')));
 }
@@ -1337,10 +1384,10 @@ window.dame = {
   openPuzzle,
   newGame,
   go,
-  position(rows, turn = 1) {
+  position(rows, turn = 1, quiet = 0) {
     if (!G) return;
     G.token = Symbol('debug');
-    G.state = R.stateFromRows(rows, turn);
+    G.state = R.stateFromRows(rows, turn, quiet);
     G.ids = new Array(64).fill(null);
     G.pieces = new Map();
     G.history = [];

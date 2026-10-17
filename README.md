@@ -10,6 +10,15 @@ Ghanaian-style draughts drawn in a school notebook. Forest animals take on the m
 - **Extras:** how-to-play page, sound toggle (synthesised, no audio files), captured-pieces tray, ad placeholders, character-pack shop preview with a "Pay via MoMo" button that is UI only. No entry fees, stakes or prizes anywhere.
 - **Light:** no build step, no frameworks, no images: everything is drawn in code. The whole site is about 230 KB (about 70 KB gzipped); online play, leaderboards and the replay recorder only load when used. Works offline after the first visit.
 
+## Install on a phone
+
+Dame is an installable web app (PWA): it has a manifest, PNG icons (including a maskable icon for Android and an Apple touch icon), and a service worker that keeps the whole game working offline.
+
+- **iPhone:** open the site in Safari → Share → *Add to Home Screen*.
+- **Android:** Chrome shows *Install app* (or use ⋮ → *Add to Home screen*). Settings in the game also has an install button when the browser offers one.
+
+Link previews (WhatsApp, iMessage, X…) use the Open Graph / Twitter tags in `index.html` and `og.jpg`. Regenerate the share card and icons with `node tools/make-art.mjs` (drawn from the game's own code via `tools/art.html`).
+
 ## Run locally
 
 Serve the folder over HTTP (service workers and module workers don't run from `file://`):
@@ -24,6 +33,13 @@ Then open http://localhost:8080 (or your computer's address from a phone on the 
 
 ```sh
 npm test             # node --test: rules, AI, online protocol, chat filter, puzzles, unlocks
+```
+
+End-to-end (real browser, local Supabase stand-in running the real `schema.sql` in PGlite):
+
+```sh
+npm install          # dev tools only: playwright, ws, pglite
+npm run e2e          # rules through the UI, online play, dropped connections, database rules, previews, install
 ```
 
 The puzzle test re-solves every puzzle in `data/puzzles.json` with the rules module, so a broken puzzle fails the build.
@@ -51,6 +67,18 @@ Online play, chat reports and (later) leaderboards use a free Supabase project. 
 
 Players pick a nickname and a group in **Leaderboard**. Groups come from [`data/groups.json`](data/groups.json): edit the list freely (ids are lowercase letters, numbers and dashes). Points: computer win easy 1 / medium 2 / hard 3, online win 3, finished online game 1, daily puzzle 2 (once a day). Weeks start on Monday (UTC). The database checks the points, limits floods per nickname and stores nothing but nickname, group and points. It can't stop someone faking scores from a modified browser; it is a friendly board with no prizes.
 
+### Security checklist
+
+- Every table has row level security **on** with an explicit restrictive "deny" policy, and no table privileges for `anon`/`authenticated`. All access goes through `SECURITY DEFINER` functions with a pinned `search_path` that validate inputs. `npm test` and `npm run e2e` check all of this.
+- Rooms expire after 2 hours (enforced in every room function), reports are capped per room, points are flood-limited per nickname, chat is rate-limited on both phones (Realtime broadcast never touches the database).
+- Only the **anon** key is ever in the site. `test/security.test.js` fails if a `service_role`/secret key or a non-anon JWT appears in any client file.
+- **Retention:** enable `pg_cron` and run the `dame-retention` block at the end of `schema.sql` once; it deletes old rooms, reports and scores as promised in `privacy.html`.
+- After applying the schema, run Supabase's Security and Performance advisors (Dashboard → Advisors).
+
+### Anonymous counts
+
+`dame_event_counts` holds one row per day per event (`game_start_cpu`, `game_finish_online`, `invite_open`, `puzzle_play`, `puzzle_share`…) with a total. No ids, no IPs. Players can switch it off in Settings, and it's skipped for Do Not Track. To see the numbers: `select * from dame_event_counts order by day desc, event;`
+
 ### Tables
 
 All tables have row level security on with **no policies**, so the anon key can't read or write them directly. The site only calls the `SECURITY DEFINER` functions, which check their inputs.
@@ -59,6 +87,7 @@ All tables have row level security on with **no policies**, so the anon key can'
 | --- | --- | --- |
 | `dame_rooms` | room `code`, `created_at`, `expires_at` (2 hours), host `options` (rules, timer, host team), `game` number, `first_turn`, `moves` (compact move codes), `result` | `dame_create_room`, `dame_push_move`, `dame_new_game`, `dame_finish`; read by `dame_get_room` |
 | `dame_reports` | room code, reported nickname, the reported message | `dame_report` (max 20 per room) |
+| `dame_event_counts` | `day`, `event`, `n` (a daily total) | `dame_count` |
 | `dame_scores` | `week`, `nickname`, `group_id`, `points`, `reason` | `dame_add_points`; read by `dame_leaderboard` (top 20 players and groups this week) |
 
 Expired rooms are invisible to the functions. To delete them, enable `pg_cron` and schedule the cleanup query at the bottom of `schema.sql`.
@@ -105,6 +134,9 @@ Cosmetic only. Owl (3 wins in a row) and kenkey seller (5 in a row) come from wi
 | `data/puzzles.json`, `data/groups.json` | Puzzles and leaderboard groups, both editable. |
 | `tools/make-puzzles.mjs` | Generates verified puzzles. |
 | `supabase/schema.sql` | Everything Supabase needs. |
+| `js/analytics.js` | Anonymous daily counts. |
+| `privacy.html`, `terms.html` | Plain-language privacy page and terms. |
+| `e2e/` | Browser end-to-end tests and the local Supabase stand-in. |
 | `sw.js` | Offline cache. |
 
 Debug helper in the console: `dame.position([...8 rows...], turn)` loads a position (`x`/`X` bottom man/king, `o`/`O` top man/king).

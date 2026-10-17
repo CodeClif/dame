@@ -19,6 +19,10 @@ create table if not exists public.dame_rooms (
   result      text
 );
 alter table public.dame_rooms enable row level security;
+-- An explicit "deny everything" policy documents the intent (and keeps the advisor quiet):
+-- clients go through the functions below, never the table.
+drop policy if exists dame_rooms_no_direct_access on public.dame_rooms;
+create policy dame_rooms_no_direct_access on public.dame_rooms as restrictive for all to anon, authenticated using (false) with check (false);
 
 create or replace function public.dame_create_room(p_code text, p_options jsonb)
 returns jsonb language plpgsql security definer set search_path = public as $$
@@ -77,6 +81,9 @@ create table if not exists public.dame_reports (
   message     text
 );
 alter table public.dame_reports enable row level security;
+drop policy if exists dame_reports_no_direct_access on public.dame_reports;
+create policy dame_reports_no_direct_access on public.dame_reports as restrictive for all to anon, authenticated using (false) with check (false);
+create index if not exists dame_reports_room on public.dame_reports (room);
 
 create or replace function public.dame_report(p_room text, p_nickname text, p_message text)
 returns boolean language plpgsql security definer set search_path = public as $$
@@ -96,11 +103,10 @@ grant execute on function
   public.dame_new_game(text, int), public.dame_finish(text, int, text), public.dame_report(text, text, text)
   to anon, authenticated;
 
--- ===================================================================== optional cleanup
--- Expired rooms are already invisible. To delete them, enable the pg_cron extension
--- (Database → Extensions) and run once:
---   select cron.schedule('dame-cleanup', '17 * * * *',
---     $$delete from public.dame_rooms where expires_at < now() - interval '1 day'$$);
+-- ===================================================================== cleanup (needed for the privacy promises)
+-- Expired rooms are already invisible to the game. To actually delete old data, enable
+-- the pg_cron extension (Database → Extensions → pg_cron) and run the block at the very
+-- end of this file once.
 
 -- ===================================================================== weekly leaderboards
 -- Anonymous nicknames and a group id (campus, school or region from data/groups.json).
@@ -119,6 +125,8 @@ create table if not exists public.dame_scores (
 create index if not exists dame_scores_week on public.dame_scores (week);
 create index if not exists dame_scores_nick on public.dame_scores (nickname, created_at);
 alter table public.dame_scores enable row level security;
+drop policy if exists dame_scores_no_direct_access on public.dame_scores;
+create policy dame_scores_no_direct_access on public.dame_scores as restrictive for all to anon, authenticated using (false) with check (false);
 
 create or replace function public.dame_add_points(p_nickname text, p_group text, p_points int, p_reason text)
 returns boolean language plpgsql security definer set search_path = public as $$
@@ -154,3 +162,42 @@ $$;
 
 revoke all on public.dame_scores from anon, authenticated;
 grant execute on function public.dame_add_points(text, text, int, text), public.dame_leaderboard() to anon, authenticated;
+
+-- ===================================================================== anonymous counts
+-- One row per day per event with a running total. No user id, no IP, no device id:
+-- just "how many games were started today". Read it in the Table editor or with SQL.
+
+create table if not exists public.dame_event_counts (
+  day    date not null default (now() at time zone 'utc')::date,
+  event  text not null,
+  n      integer not null default 0,
+  primary key (day, event)
+);
+alter table public.dame_event_counts enable row level security;
+drop policy if exists dame_event_counts_no_direct_access on public.dame_event_counts;
+create policy dame_event_counts_no_direct_access on public.dame_event_counts as restrictive for all to anon, authenticated using (false) with check (false);
+
+create or replace function public.dame_count(p_event text)
+returns boolean language plpgsql security definer set search_path = public as $$
+begin
+  if p_event !~ '^(game_start|game_finish)_(cpu|pnp|online|puzzle|days)$'
+     and p_event not in ('invite_open', 'puzzle_play', 'puzzle_solve', 'puzzle_share', 'app_install') then
+    return false;
+  end if;
+  insert into dame_event_counts (day, event, n) values ((now() at time zone 'utc')::date, p_event, 1)
+  on conflict (day, event) do update set n = dame_event_counts.n + 1;
+  return true;
+end $$;
+
+revoke all on public.dame_event_counts from anon, authenticated;
+grant execute on function public.dame_count(text) to anon, authenticated;
+
+-- ===================================================================== retention job
+-- Run once after enabling pg_cron. Deletes what privacy.html promises to delete:
+--   rooms a day after they close, reports after 90 days, scores after 12 weeks,
+--   play-over-days games 14 days after their last move (Phase 5).
+-- select cron.schedule('dame-retention', '17 3 * * *', $$
+--   delete from public.dame_rooms   where expires_at < now() - interval '1 day';
+--   delete from public.dame_reports where created_at < now() - interval '90 days';
+--   delete from public.dame_scores  where created_at < now() - interval '12 weeks';
+-- $$);

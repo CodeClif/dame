@@ -1,0 +1,65 @@
+<!doctype html>
+<!-- Renders the share card and app icons from the game's own drawing code. Used by tools/make-art.mjs. -->
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap">
+<style>
+  body { margin: 0; background: #fdfbf3; }
+  .stage { position: relative; overflow: hidden; background-color: #fdfbf3;
+    background-image: linear-gradient(to right, transparent 54px, #f1a7a7 54px, #f1a7a7 57px, transparent 57px),
+      repeating-linear-gradient(to bottom, transparent 0 39px, #c4dbf2 39px 41px); }
+  .og { width: 1200px; height: 630px; }
+  .og .title { position: absolute; left: 90px; top: 40px; width: 520px; }
+  .og .sub { position: absolute; left: 100px; top: 270px; font: 700 52px Caveat, cursive; color: #1f2d6b; line-height: 1.15; }
+  .og .tag { position: absolute; left: 100px; top: 440px; font: 500 40px Caveat, cursive; color: #d62828; transform: rotate(-3deg); }
+  .og .board { position: absolute; right: 40px; top: 45px; width: 540px; height: 540px; transform: rotate(4deg); }
+  .og .board svg.board-svg { width: 100%; height: 100%; overflow: visible; }
+  .char { position: absolute; }
+  .char svg { width: 100%; height: 100%; overflow: visible; }
+  .icon { width: 512px; height: 512px; }
+  .icon.mask { background: #fdfbf3; }
+  .icon .inner { position: absolute; inset: 0; }
+  .eyes-x, .eyes-happy, .m-oh, .m-grin, .crown, .king-ring { display: none; }
+  .king .crown, .king .king-ring { display: inline; }
+  .grid { stroke: #24304f; } .paper { fill: #fffef8; opacity: .7; } .sq-bg { fill: #cfe7c4; opacity: .55; }
+  .h-a { stroke: #3d8b47; } .h-b { stroke: #5aa463; } .kente-frame { display: none; }
+</style></head>
+<body>
+<div class="stage og" id="og">
+  <div class="title" id="og-title"></div>
+  <div class="sub">Ghana draughts,<br>drawn in the margins</div>
+  <div class="tag">Your move, chale! ✏️</div>
+  <div class="board" id="og-board"></div>
+</div>
+<div class="stage icon" id="icon"><div class="inner" id="icon-inner"></div></div>
+<div class="stage icon mask" id="mask"><div class="inner" id="mask-inner"></div></div>
+<script type="module">
+  import { characterSVG, DEFS_SVG } from '../js/characters.js';
+  import { boardSVG, titleSVG } from '../js/sketch.js';
+  document.body.insertAdjacentHTML('afterbegin', DEFS_SVG);
+  document.getElementById('og-title').innerHTML = titleSVG();
+  const board = document.getElementById('og-board');
+  board.innerHTML = boardSVG(21);
+  const place = (el, key, x, y, w, king = false) => el.insertAdjacentHTML('beforeend',
+    `<div class="char${king ? ' king' : ''}" style="left:${x}px;top:${y}px;width:${w}px;height:${w * 1.14}px">${characterSVG(key)}</div>`);
+  const cell = 540 / 8;
+  [['trader', 1, 0], ['drummer', 3, 0], ['fisherman', 5, 2], ['farmer', 2, 1], ['tortoise', 2, 5, true], ['antelope', 4, 5], ['parrot', 6, 7], ['crocodile', 1, 6]]
+    .forEach(([k, c, r, king]) => place(board, k, c * cell - cell * 0.1, r * cell - cell * 0.37, cell * 1.2, king));
+  // icon: a big crowned tortoise on a hatched square
+  const icon = (id, pad) => {
+    const el = document.getElementById(id);
+    const top = pad + 70;
+    const size = 512 - 2 * pad;
+    el.innerHTML = `<svg viewBox="0 0 512 512" style="position:absolute;inset:0"><defs><clipPath id="c${id}"><rect x="${pad}" y="${top}" width="${size}" height="${size - 70}" rx="40"/></clipPath></defs>
+      <rect x="${pad}" y="${top}" width="${size}" height="${size - 70}" rx="40" fill="#cfe7c4"/>
+      <g clip-path="url(#c${id})" stroke="#3d8b47" stroke-width="9" stroke-linecap="round" opacity=".8">${Array.from({ length: 16 }, (_, i) => `<path d="M${i * 44 - 200} 512 L${i * 44 + 40} 0"/>`).join('')}</g>
+      <rect x="${pad}" y="${top}" width="${size}" height="${size - 70}" rx="40" fill="none" stroke="#24304f" stroke-width="12"/></svg>`;
+    const w = size * 0.82;
+    const h = w * 1.14;
+    place(el, 'tortoise', 256 - w / 2, 512 - pad - 16 - h * (105 / 114), w, true);
+  };
+  icon('icon-inner', 28);
+  icon('mask-inner', 96);
+  await document.fonts.ready;
+  document.body.dataset.ready = '1';
+</script>
+</body></html>

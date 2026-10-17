@@ -4,6 +4,7 @@ import { boardSVG, titleSVG, doodle, packIcon, icon, wobblyCircle, seeded } from
 import { sfx, setSoundEnabled } from './sound.js';
 import { chooseMove } from './ai.js';
 import { encodeMove, decodeMove } from './protocol.js';
+import { skillOf, travelFrames, strike } from './moves.js';
 import { onlineConfigured } from './config.js';
 import { emptyProgress, isUnlocked, recordGame, recordPuzzleProgress } from './progress.js';
 import { getNick, getGroup } from './profile.js';
@@ -27,6 +28,7 @@ const settings = {
   menCaptureBackward: true,
   sound: true,
   captions: true,
+  skills: true, // signature moves: each character's own travel and capture animation
   level: 'medium',
   team: 'forest',
   theme: 'pencil',
@@ -236,7 +238,7 @@ function renderLineup(el, team) {
     const locked = on && chosen.length === 1; // the last one can't be removed
     return `<button class="card ${on ? 'on' : 'off'}${locked ? ' locked' : ''}" data-char="${k}" aria-pressed="${on}"${locked ? ' aria-disabled="true"' : ''}${ch.quip ? ` title="${ch.quip}"` : ''}>
       <span class="pic char">${characterSVG(k, { withBase: false })}</span>
-      <span class="nm">${ch.name}</span><span class="kd">${ch.kind}</span></button>`;
+      <span class="nm">${ch.name}</span><span class="kd">${ch.kind}</span><span class="sk">✨${skillOf(k).name}</span></button>`;
   };
   el.innerHTML = GROUPS.map(([label, test]) => {
     const keys = TEAM_ROSTER[team].filter((k) => test(CHARACTERS[k]));
@@ -339,6 +341,7 @@ function newGame(config) {
     over: false,
     lastMove: null,
     token: Symbol('game'),
+    skillsShown: new Set(), // characters who have already announced their signature move
   };
   if (G?.clockTimer) clearInterval(G.clockTimer);
   // Hand out characters, back row first, cycling through each line-up.
@@ -825,19 +828,19 @@ function drawTrail() {
 
 const cellTransform = (r, c) => `translate(calc(${c} * 100%), calc(${r} * 100%))`;
 
-function hop(el, a, b) {
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const showSkills = () => settings.skills && !reducedMotion.matches;
+
+function hop(el, a, b, char) {
   const [ra, ca, rb, cb] = [vRow(a), vCol(a), vRow(b), vCol(b)];
   const dist = Math.abs(rb - ra);
-  const duration = 300 + dist * 75;
+  const style = showSkills() ? skillOf(char).travel : 'hop';
+  const { frames, mul, easing } = travelFrames(style, dist);
+  const duration = Math.round((300 + dist * 75) * mul);
   const travel = el.animate([{ transform: cellTransform(ra, ca) }, { transform: cellTransform(rb, cb) }],
-    { duration, easing: 'cubic-bezier(.45,.05,.4,1)' });
-  el.firstElementChild.animate([
-    { transform: 'translateY(0) scale(1,1)' },
-    { transform: 'translateY(-3%) scale(1.07,.9)', offset: 0.1 },
-    { transform: `translateY(-${28 + dist * 7}%) scale(.95,1.06)`, offset: 0.5 },
-    { transform: 'translateY(0) scale(1.14,.84)', offset: 0.88 },
-    { transform: 'translateY(0) scale(1,1)' },
-  ], { duration });
+    { duration, easing: style === 'hop' ? 'cubic-bezier(.45,.05,.4,1)' : easing });
+  el.firstElementChild.animate(frames, { duration });
+  if (style === 'stomp') setTimeout(() => $('.board-frame')?.animate([{ transform: 'none' }, { transform: 'translateY(2px)' }, { transform: 'translateY(-1px)' }, { transform: 'none' }], 180), duration * 0.85);
   place(el, b); // the running animation hides the jump; when it ends the piece is already there
   return travel.finished.catch(() => {});
 }
@@ -882,6 +885,22 @@ function knockOut(s) {
   ], { duration: 760, delay: 200, easing: 'ease-in', fill: 'forwards' }).finished.then(() => el.remove(), () => el.remove());
 }
 
+// The mover's secret skill: its own capture animation on the jumped piece.
+function signatureCapture(s, mover, char, from) {
+  const info = G.pieces.get(G.ids[s]);
+  if (!info?.el) return Promise.resolve();
+  const el = info.el;
+  el.classList.add('shocked');
+  el.style.zIndex = 40;
+  sfx.capture();
+  const [r, c] = [vRow(s), vCol(s)];
+  return strike(char, {
+    fx: $('#fx'), victim: el, base: cellTransform(r, c), r, c,
+    mover: mover.firstElementChild, board: $('.board-frame'),
+    dir: c >= vCol(from) ? 1 : -1,
+  });
+}
+
 function snapshot() {
   return {
     state: G.state,
@@ -917,15 +936,25 @@ async function performMove(move, remote = false) {
   el.style.zIndex = 50;
   for (let i = 0; i < move.path.length - 1; i++) {
     sfx.hop();
-    await hop(el, move.path[i], move.path[i + 1]);
+    await hop(el, move.path[i], move.path[i + 1], info.char);
     if (G.token !== token) return;
     sfx.land();
     if (move.captures[i] != null) {
       const victim = G.pieces.get(G.ids[move.captures[i]]);
       if (victim) { G.captured[side].push(victim.char); renderTray(side); }
-      knockOut(move.captures[i]);
       el.classList.add('cheer');
-      await sleep(260);
+      if (showSkills()) {
+        if (!G.skillsShown.has(info.char)) {
+          G.skillsShown.add(info.char);
+          say(`${CHARACTERS[info.char]?.name || 'Ei'}’s ${skillOf(info.char).name}!`);
+        }
+        // Wait for the skill's big moment, but not for the piece to finish leaving.
+        await Promise.race([signatureCapture(move.captures[i], el, info.char, move.path[i]), sleep(700)]);
+      } else {
+        knockOut(move.captures[i]);
+        await sleep(260);
+      }
+      if (G.token !== token) return;
     }
   }
   const wasMan = !R.isKing(G.state.board[move.from]);
@@ -1225,6 +1254,8 @@ function renderHowto() {
     ${fk ? 'Kings <b>fly</b>: they glide any distance along a diagonal, and can capture a piece far away as long as the squares in between are empty, landing on any empty square beyond it.'
     : 'Kings move and capture one square at a time, but in any diagonal direction.'}
     A man who reaches the far side in the middle of a capture chain carries on capturing and is only crowned if he finishes there.</p>
+    <h3>Signature moves ✨</h3>
+    <p>Every character has a secret skill they show off when they capture: the crocodile’s <b>Jaw Snap</b> chomps, the spider wraps pieces in a web, the fisherman casts a net, the tro-tro driver honks them off the board. They travel in their own way too — birds fly, the tortoise rolls, the elephant stomps. It’s all for fun: every character follows exactly the same rules. Switch it off in <b>Settings</b>.</p>
     <h3>Draws</h3>
     <p>If 25 moves each go by with only kings moving and nothing captured, the game is a draw.</p>
     <h3>On this phone</h3>

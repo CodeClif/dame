@@ -17,6 +17,12 @@ Tick each line; if one fails, note what you saw and the time.
 - [ ] **Shop**: the free packs are listed, and the paid ones say "coming soon". Nothing can be bought.
 - [ ] Footer links in **Settings**: Privacy and Terms open and have a "Back to the game" link.
 
+## Signature moves
+- [ ] **Pick your crew**: each card shows a red ✨ skill name (e.g. Jaw Snap).
+- [ ] Play with the crocodile and make a capture: green jaws snap shut on the piece with "CHOMP!", and a note says "Kwabena’s Jaw Snap!".
+- [ ] Try the spider (web lifts the piece away), the tro-tro driver ("POM POM!") and, once unlocked, the elephant (the board shakes).
+- [ ] **Settings → Signature moves** off: captures go back to the simple spin-away.
+
 ## Install
 - [ ] Safari → Share → **Add to Home Screen**. The tortoise icon appears; open Dame from it (no Safari bars).
 - [ ] Turn on Airplane mode and open Dame from the Home Screen: it still loads and you can play the computer.

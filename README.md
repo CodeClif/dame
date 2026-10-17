@@ -144,6 +144,8 @@ Cosmetic only — every piece follows the same rules. Unlocks come from **win st
 
 Each pack character has a one-line personality (`quip` in `js/characters.js`) used in captions and the post-game recap. Four seasonal characters (Harmattan, rainy-season frog, Fancy Dress masquerader, caroler) are drawn and listed as "coming"; switch one on by removing its `seasonal` field.
 
+**Signature moves:** each character has a travel style and a secret capture skill (`SKILLS` in `js/moves.js`), e.g. the crocodile's Jaw Snap or the spider's Web Wrap. They are drawn as small SVGs in the board's effects layer and change nothing in the rules. They can be switched off in Settings and are skipped when the phone asks for reduced motion.
+
 **Streak freeze:** every 5 days of puzzle streak earns a freeze (hold up to 2). Missing a single day spends one and the streak carries on.
 
 **Post-game recap:** after each game, 2–4 lines in the characters' voices — the best capture, a missed longer jump, the other side's longest chain, a crowning, and a parting word (`js/recap.js`, tested in `test/recap.test.js`).

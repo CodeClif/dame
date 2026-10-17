@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0 — Signature moves
+
+- Every character now travels its own way: the crocodile slithers, birds fly, the tortoise and pangolin roll, the antelope leaps, the spider scuttles, the bush cat pounces, the tro-tro and river hog charge, the mona monkey swings, the elephant stomps (and the board shakes).
+- Every character has a secret capture skill drawn in pen, e.g. the crocodile's **Jaw Snap** (jaws close on the piece: "CHOMP!"), the spider's **Web Wrap** (lifted away on a thread), the fisherman's **Net Cast**, the trader's **Basin Scoop**, the driver's **Tro-tro Honk** ("POM POM!"), the drummer's **Drum Boom**, the elephant's **Trunk Stomp**, the plantain roaster's **Roasted!**, the grasscutter's **Nibble Nibble**.
+- The first time a character uses its skill in a game, a margin note names it. Line-up cards show each skill (✨).
+- Purely cosmetic: the rules are unchanged. New **Signature moves** switch in Settings; phones set to reduce motion get the old simple knock-out.
+- New file `js/moves.js` (about 25 KB).
+
 ## 1.6.0 — Keep people coming back
 
 - Weekly leagues of up to 30, grouped by when players become active, with tiers Pebble → Cowrie → Bead → Kente → Gold. Top 5 move up and bottom 5 move down in leagues of 10+. "My league" tab with nicknames only.

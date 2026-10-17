@@ -208,6 +208,8 @@ body.skip-intro .home-board * { animation-delay: 0s !important; animation-durati
 .spark svg { position: absolute; inset: -60%; width: 220%; height: 220%; overflow: visible; }
 .spark .ray { stroke-dasharray: 1.02 1.02; stroke-dashoffset: 1.02; animation: draw .3s ease-out forwards, fade-out .45s .3s forwards; }
 .spark .twk { transform-box: fill-box; transform-origin: center; animation: twk .7s ease-out forwards; }
+/* Signature-move effects: 100 units span 1.5 squares, centred on the jumped piece. */
+.spark.strike svg { inset: -33% -25% -17%; width: 150%; height: 150%; }
 @keyframes fade-out { to { opacity: 0; } }
 @keyframes twk { 0% { transform: scale(0) rotate(0); } 50% { transform: scale(1.2) rotate(40deg); } 100% { transform: scale(0) rotate(90deg); opacity: 0; } }
 
@@ -281,6 +283,8 @@ body.skip-intro .home-board * { animation-delay: 0s !important; animation-durati
 .card .pic svg { width: 100%; height: 100%; overflow: visible; }
 .card .nm { font-family: var(--hand); font-size: 19px; font-weight: 700; line-height: 1.15; padding: 4px 6px 1px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card .kd { font-size: 13px; color: var(--muted); line-height: 1.2; padding: 0 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .sk { display: block; box-sizing: border-box; width: 100%; white-space: normal; font-family: var(--hand); font-size: 14px; color: var(--red); line-height: 1.05; padding: 0 9px 3px; text-align: center; }
+.card.sealed .sk { display: none; }
 .card.locked { cursor: not-allowed; }
 .card.locked .kd::after { content: ' · last one'; color: var(--red); }
 .card.off { opacity: .4; filter: grayscale(.8); }

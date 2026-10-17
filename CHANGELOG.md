@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Gentler sounds: soft wooden xylophone notes on a pentatonic scale, quieter overall, no scratchy noise or buzzer.
+
 ## 1.3.0 — Reasons to come back
 
 - Daily puzzle: one position a day, the same for everyone, "win within N moves" against the computer's best defence. Streak counter and a short share message (Web Share or WhatsApp). 30 puzzles in `data/puzzles.json`, each proven solvable by the test suite.

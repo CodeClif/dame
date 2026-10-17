@@ -16,6 +16,7 @@
 </head>
 <body data-screen="home">
   <div id="doodles" class="doodles" aria-hidden="true"></div>
+  <div id="sky" class="doodles sky"></div>
 
   <main id="app">
     <!-- HOME -->
@@ -76,7 +77,7 @@
     <!-- GAME -->
     <section id="game" class="screen" aria-label="Game">
       <div class="player-bar" id="bar-top"></div>
-      <div class="bunting-row" aria-hidden="true"><span class="g-sun" id="g-sun"></span><div class="bunting" id="bunting"></div><span class="g-moon" id="g-moon"></span></div>
+      <div class="bunting-row"><button class="g-sun daynight" id="g-sun" aria-label="Switch day or night"></button><div class="bunting" id="bunting" aria-hidden="true"></div><button class="g-moon daynight" id="g-moon" aria-label="Switch day or night"></button></div>
       <div class="board-frame">
         <div class="ranks" id="ranks"></div>
         <div class="board" id="board" role="grid" aria-label="Board">
@@ -90,6 +91,11 @@
       </div>
       <div class="caption-zone" aria-live="polite"><span class="caption hand" id="caption"></span></div>
       <div class="player-bar" id="bar-bottom"></div>
+      <div class="tray" id="tray" aria-label="Captured pieces">
+        <div class="tray-side" data-side="1"><span class="tl" data-tl="1">You took</span><span class="heads"></span></div>
+        <div class="tray-side" data-side="-1"><span class="tl" data-tl="-1">They took</span><span class="heads"></span></div>
+      </div>
+      <div class="ad-slot game-ad" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>
       <div class="ground" id="ground" aria-hidden="true"></div>
       <footer class="controls">
         <button class="ctrl" id="menu-btn"><span class="ic" data-icon="menu"></span><span>Menu</span></button>
@@ -127,6 +133,10 @@
         <h2 class="hand">Settings</h2>
       </header>
       <div class="page-body">
+        <span class="label hand">Board</span>
+        <div class="themes" id="themes"></div>
+        <label class="toggle"><input type="checkbox" id="night-toggle"><span class="box"></span>
+          <span><b>Night mode</b><small>Chalk on navy paper. Tap the moon doodle to switch any time.</small></span></label>
         <label class="toggle"><input type="checkbox" data-setting="flyingKings"><span class="box"></span>
           <span><b>Flying kings</b><small>Kings glide any distance along a diagonal and capture from afar.</small></span></label>
         <label class="toggle"><input type="checkbox" data-setting="menCaptureBackward"><span class="box"></span>

@@ -20,6 +20,8 @@ const settings = {
   captions: true,
   level: 'medium',
   team: 'forest',
+  theme: 'pencil',
+  night: null, // null follows the phone's light/dark setting
   lineups: { forest: [...TEAM_ROSTER.forest], market: [...TEAM_ROSTER.market] },
 };
 try {
@@ -34,6 +36,26 @@ function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* ignore */ }
 }
 setSoundEnabled(settings.sound);
+
+// ---------- look: board palette + night mode ----------
+
+const THEMES = [
+  { id: 'pencil', name: 'Green pencil', sq: '#cfe7c4', ha: '#3d8b47' },
+  { id: 'ink', name: 'Blue ink', sq: '#d6e4f7', ha: '#2747a8' },
+  { id: 'sepia', name: 'Sepia kente', sq: '#e2c9a0', ha: '#8b5a2b' },
+  { id: 'berry', name: 'Pink purple', sq: '#f2d3ea', ha: '#a23a8f' },
+  { id: 'contrast', name: 'High contrast', sq: '#0b5a2e', ha: '#e9ffe9' },
+];
+const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+const isNight = () => settings.night ?? darkQuery.matches;
+function applyLook() {
+  if (!THEMES.some((t) => t.id === settings.theme)) settings.theme = 'pencil';
+  document.body.dataset.theme = settings.theme;
+  document.body.classList.toggle('night', isNight());
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', isNight() ? '#142039' : '#fdfbf3');
+}
+darkQuery.addEventListener?.('change', () => { if (settings.night == null) applyLook(); });
+applyLook();
 
 // ---------- margin notes ----------
 
@@ -111,24 +133,31 @@ document.addEventListener('click', (e) => {
 
 // ---------- home ----------
 
+// The menu board shows a full starting position with the saved line-ups.
 function renderHome() {
   $('#title').innerHTML = titleSVG();
   const hb = $('#home-board');
-  hb.innerHTML = boardSVG(21);
-  const guests = [['tortoise', 1, 0, 3.3], ['trader', 4, 5, 3.6], ['parrot', 2, 3, 3.9], ['drummer', 5, 2, 4.2]];
-  for (const [key, c, r, delay] of guests) {
-    const g = document.createElement('div');
-    g.className = 'guest char';
-    g.style.cssText = `left:${c * 12.5 - 2.25}%;top:${r * 12.5 - 9}%;animation-delay:${delay}s`;
-    g.innerHTML = characterSVG(key);
-    hb.appendChild(g);
-  }
+  hb.innerHTML = `${boardSVG(21)}<div class="home-pieces"></div>`;
+  const bottom = settings.team;
+  const count = { 1: 0, [-1]: 0 };
+  let html = '';
+  let n = 0;
+  R.createInitialState().board.forEach((p, s) => {
+    if (!p) return;
+    const side = R.sideOf(p);
+    const list = settings.lineups[side === 1 ? bottom : otherTeam(bottom)];
+    const key = list[count[side]++ % list.length];
+    html += `<div class="piece char guest" style="--r:${R.rowOf(s)};--c:${R.colOf(s)};--pop:${(3.2 + n++ * 0.035).toFixed(2)}s;--delay:${(-Math.random() * 2.6).toFixed(2)}s;--blink:${(-Math.random() * 4.6).toFixed(2)}s"><div class="hopper">${characterSVG(key)}</div></div>`;
+  });
+  $('.home-pieces', hb).innerHTML = html;
   $('#home').addEventListener('pointerdown', () => document.body.classList.add('skip-intro'), { once: true });
 }
 
 function renderDoodles() {
   const items = [['sun', 'd-sun'], ['moon', 'd-moon'], ['fish', 'd-fish'], ['snail', 'd-snail'], ['bird', 'd-bird'], ['ladybug', 'd-ladybug'], ['star', 'd-star']];
-  $('#doodles').innerHTML = items.map(([n, cls], i) => `<div class="doodle ${cls}">${doodle(n, i + 5)}</div>`).join('');
+  // Sun and moon sit in their own layer above the screens so they can be tapped.
+  $('#sky').innerHTML = items.slice(0, 2).map(([n, cls], i) => `<button class="doodle ${cls} daynight" aria-label="Switch day or night">${doodle(n, i + 5)}</button>`).join('');
+  $('#doodles').innerHTML = items.slice(2).map(([n, cls], i) => `<div class="doodle ${cls}">${doodle(n, i + 7)}</div>`).join('');
   $('#bunting').innerHTML = doodle('bunting');
   $('#g-sun').innerHTML = doodle('sun', 11);
   $('#g-moon').innerHTML = doodle('moon', 12);
@@ -136,6 +165,15 @@ function renderDoodles() {
     <div class="g-bird">${doodle('bird', 15)}</div><div class="g-ladybug">${doodle('ladybug', 16)}</div>
     <div class="waves"><svg viewBox="0 0 300 14" preserveAspectRatio="none"><path d="M0 8q12-8 25 0t25 0 25 0 25 0 25 0 25 0 25 0 25 0 25 0 25 0 25 0 25 0" fill="none" stroke="#7fb7d6" stroke-width="2" stroke-linecap="round"/></svg></div>`;
 }
+
+// Tapping the sun or moon doodle flips between day and night.
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.daynight')) return;
+  settings.night = !isNight();
+  saveSettings();
+  applyLook();
+  sfx.scribble();
+});
 
 // ---------- setup ----------
 
@@ -157,7 +195,8 @@ function renderLineup(el, team) {
   el.innerHTML = TEAM_ROSTER[team].map((k) => {
     const ch = CHARACTERS[k];
     const on = chosen.includes(k);
-    return `<button class="card ${on ? 'on' : 'off'}" data-char="${k}" aria-pressed="${on}">
+    const locked = on && chosen.length === 1; // the last one can't be removed
+    return `<button class="card ${on ? 'on' : 'off'}${locked ? ' locked' : ''}" data-char="${k}" aria-pressed="${on}"${locked ? ' aria-disabled="true"' : ''}>
       <span class="pic char">${characterSVG(k, { withBase: false })}</span>
       <span class="nm">${ch.name}</span><span class="kd">${ch.kind}</span></button>`;
   }).join('');
@@ -233,6 +272,7 @@ function newGame(config) {
     ids: new Array(64).fill(null),
     pieces: new Map(),
     history: [],
+    captured: { 1: [], [-1]: [] }, // characters each side has taken
     moves: [],
     selected: null,
     busy: true,
@@ -265,6 +305,7 @@ function newGame(config) {
   $('#fx').innerHTML = '';
   renderPieces(true);
   renderBars();
+  renderTray();
   const token = G.token;
   setTimeout(() => {
     if (G.token !== token) return;
@@ -314,8 +355,8 @@ function renderBars() {
     const team = TEAMS[G.teams[side]];
     const sub = G.mode === 'cpu' && side === -1 ? `${team.short} · ${G.level}` : team.name;
     bar.innerHTML = `<span class="avatar char">${characterSVG(G.config.lineups[side][0])}</span>
-      <span class="who">${sideLabel(side)}</span><span class="sub">${sub}</span>
-      <span class="thinking hand">thinking…</span>
+      <span class="who">${sideLabel(side)}</span>
+      <span class="status"><span class="sub">${sub}</span><span class="thinking hand">thinking…</span></span>
       <span class="count"><i style="background:${team.color}"></i><b data-count>${R.countPieces(G.state.board, side)}</b></span>`;
   }
   updateBars();
@@ -328,7 +369,18 @@ function updateBars(thinking = false) {
     bar.classList.toggle('thinking-on', thinking && G.state.turn === side);
     $('[data-count]', bar).textContent = `×${R.countPieces(G.state.board, side)}`;
   }
+  boardEl.dataset.turn = G.over ? '' : String(G.state.turn);
   $('#undo-btn').disabled = !G.history.length;
+}
+
+// Captured-pieces tray under the board: each side's haul as little heads.
+function renderTray(fresh = null) {
+  for (const side of [1, -1]) {
+    const el = $(`.tray-side[data-side="${side}"]`);
+    $('.tl', el).textContent = `${sideLabel(side)} took`;
+    const list = G.captured[side];
+    $('.heads', el).innerHTML = list.map((k, i) => `<span class="char${fresh === side && i === list.length - 1 ? ' new' : ''}">${characterSVG(k, { withBase: false })}</span>`).join('');
+  }
 }
 
 function startTurn() {
@@ -546,6 +598,7 @@ function snapshot() {
     state: G.state,
     ids: G.ids.slice(),
     pieces: [...G.pieces].map(([id, p]) => [id, { side: p.side, char: p.char, king: p.king }]),
+    captured: { 1: [...G.captured[1]], [-1]: [...G.captured[-1]] },
     lastMove: G.lastMove,
   };
 }
@@ -567,6 +620,8 @@ async function performMove(move) {
     if (G.token !== token) return;
     sfx.land();
     if (move.captures[i] != null) {
+      const victim = G.pieces.get(G.ids[move.captures[i]]);
+      if (victim) { G.captured[side].push(victim.char); renderTray(side); }
       knockOut(move.captures[i]);
       el.classList.add('cheer');
       await sleep(260);
@@ -617,8 +672,10 @@ $('#undo-btn').addEventListener('click', () => {
   G.ids = snap.ids;
   G.pieces = new Map(snap.pieces);
   G.lastMove = snap.lastMove;
+  G.captured = snap.captured;
   G.over = false;
   renderPieces();
+  renderTray();
   drawTrail();
   say('undo… pretend you saw nothing', true);
   startTurn();
@@ -804,9 +861,31 @@ $('#packs').addEventListener('click', (e) => {
 
 // ---------- settings ----------
 
+const swatch = (t) => `<svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#fffef8"/>
+  <rect x="20" width="20" height="20" fill="${t.sq}"/><rect y="20" width="20" height="20" fill="${t.sq}"/>
+  <path d="M22 18L38 2M28 18L38 8M20 12L32 0M2 38L18 22M8 38L18 28M0 32L12 20" stroke="${t.ha}" stroke-width="2"/>
+  <path d="M0 20H40M20 0V40" stroke="#24304f" stroke-width="1.6"/><rect width="40" height="40" fill="none" stroke="#24304f" stroke-width="2.4"/></svg>`;
+
 function renderSettings() {
   $$('[data-setting]').forEach((input) => { input.checked = !!settings[input.dataset.setting]; });
+  $('#themes').innerHTML = THEMES.map((t) => `<button class="theme-btn${t.id === settings.theme ? ' on' : ''}" data-theme-id="${t.id}" aria-pressed="${t.id === settings.theme}">${swatch(t)}<span>${t.name}</span></button>`).join('');
+  $('#night-toggle').checked = isNight();
 }
+$('#themes').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-theme-id]');
+  if (!b) return;
+  settings.theme = b.dataset.themeId;
+  saveSettings();
+  applyLook();
+  sfx.tap();
+  renderSettings();
+});
+$('#night-toggle').addEventListener('change', (e) => {
+  settings.night = e.target.checked;
+  saveSettings();
+  applyLook();
+  sfx.tap();
+});
 $$('[data-setting]').forEach((input) => input.addEventListener('change', () => {
   settings[input.dataset.setting] = input.checked;
   if (input.dataset.setting === 'sound') { setSoundEnabled(input.checked); paintIcons(); }
@@ -835,6 +914,7 @@ window.dame = {
     G.ids = new Array(64).fill(null);
     G.pieces = new Map();
     G.history = [];
+    G.captured = { 1: [], [-1]: [] };
     G.over = false;
     G.busy = false;
     G.state.board.forEach((p, s) => {
@@ -847,6 +927,7 @@ window.dame = {
     });
     renderPieces();
     renderBars();
+    renderTray();
     startTurn();
   },
 };

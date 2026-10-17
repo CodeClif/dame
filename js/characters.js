@@ -41,19 +41,18 @@ const tortoise = () => `
   ${face(50, 64, { s: 0.9, gap: 6.5, mouth: 8 })}`;
 
 const antelope = () => `
-  <path d="M40 34C33 22 31 12 37 2M60 34C67 22 69 12 63 2" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>
-  <path d="M40 34C33 22 31 12 37 2M60 34C67 22 69 12 63 2" fill="none" stroke="#6b4a2a" stroke-width="3.6" stroke-linecap="round"/>
-  <path d="M35 18l5-2M33 25l5-1.5M65 18l-5-2M67 25l-5-1.5" ${THIN} stroke="#f3e2c2"/>
-  <ellipse cx="22" cy="42" rx="12" ry="5.5" transform="rotate(-24 22 42)" fill="#c98a4b" ${L}/>
-  <ellipse cx="78" cy="42" rx="12" ry="5.5" transform="rotate(24 78 42)" fill="#c98a4b" ${L}/>
-  <ellipse cx="22" cy="42" rx="6" ry="2.2" transform="rotate(-24 22 42)" fill="#f2b5a0"/>
-  <ellipse cx="78" cy="42" rx="6" ry="2.2" transform="rotate(24 78 42)" fill="#f2b5a0"/>
-  ${kenteStrip('M33 80Q50 90 67 80L66 89Q50 98 34 89Z')}
-  <path d="M30 42C30 28 70 28 70 42C72 60 62 80 50 82C38 80 28 60 30 42Z" fill="#c98a4b" ${L}/>
-  <path d="M42 41Q50 36 58 41" fill="none" stroke="#f3e2c2" stroke-width="3" stroke-linecap="round"/>
-  <ellipse cx="50" cy="70" rx="11" ry="8.5" fill="#f0d7b0" ${L}/>
-  <path d="M46 68h.1M54 68h.1" ${L} stroke-width="3.4"/>
-  ${face(50, 51, { s: 0.95, gap: 9, mouth: 26, cheeks: false })}`;
+  <path d="M43 34C35 24 27 13 30 1C32 -7 37 -10 40 -12M57 34C65 24 73 13 70 1C68 -7 63 -10 60 -12" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>
+  <path d="M43 34C35 24 27 13 30 1C32 -7 37 -10 40 -12M57 34C65 24 73 13 70 1C68 -7 63 -10 60 -12" fill="none" stroke="#5a3d22" stroke-width="3.8" stroke-linecap="round"/>
+  <path d="M33 21l5-2M30 13l5-1M30 5l5 0M67 21l-5-2M70 13l-5-1M70 5l-5 0" stroke="#e9d6b0" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M35 41C24 32 13 33 7 37C13 45 26 47 35 45Z" fill="#c98a4b" ${L}/><path d="M65 41C76 32 87 33 93 37C87 45 74 47 65 45Z" fill="#c98a4b" ${L}/>
+  <path d="M31 40C23 36 16 36 12 38C17 42 25 43 31 42Z" fill="#f2c3b0"/><path d="M69 40C77 36 84 36 88 38C83 42 75 43 69 42Z" fill="#f2c3b0"/>
+  ${kenteStrip('M36 86Q50 94 64 86L63 94Q50 101 37 94Z')}
+  <path d="M33 39C33 30 67 30 67 39C68 54 60 72 55 81C53 85 47 85 45 81C40 72 32 54 33 39Z" fill="#c98a4b" ${L}/>
+  <path d="M50 36V70" stroke="#8a5a2c" stroke-width="6" stroke-linecap="round" opacity=".45"/>
+  <ellipse cx="41" cy="48" rx="6.5" ry="4.5" fill="#f6ead2"/><ellipse cx="59" cy="48" rx="6.5" ry="4.5" fill="#f6ead2"/>
+  <ellipse cx="50" cy="78" rx="6" ry="4.4" fill="#3a2a20" ${THIN}/>
+  <path d="M41 86Q50 91 59 86" fill="none" stroke="#fbf3e4" stroke-width="3" stroke-linecap="round"/>
+  ${face(50, 48, { gap: 9, mouth: 34, cheeks: false })}`;
 
 const spider = () => `
   <path d="M38 58L20 44L11 54M37 62L15 60L7 72M39 66L21 75L16 87M42 70L30 84L28 95M62 58L80 44L89 54M63 62L85 60L93 72M61 66L79 75L84 87M58 70L70 84L72 95" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -65,17 +64,22 @@ const spider = () => `
   <circle cx="50" cy="24" r="3" fill="#d23a2a" ${THIN}/>
   ${face(50, 48, { s: 0.95, gap: 6.5, mouth: 7 })}`;
 
+// Side-on crocodile facing right: long toothy snout, ridged back and a curling tail.
 const crocodile = () => `
-  <path d="M30 30l5-8 5 8M45 27l5-8 5 8M60 30l5-8 5 8" fill="#4f8a3d" ${THIN}/>
-  <path d="M16 60C16 40 33 30 50 30S84 40 84 60C84 75 70 85 50 85S16 75 16 60Z" fill="#5e9a4a" ${L}/>
-  <circle cx="35" cy="37" r="10" fill="#5e9a4a" ${L}/><circle cx="65" cy="37" r="10" fill="#5e9a4a" ${L}/>
-  <circle cx="35" cy="37" r="6.5" fill="#f6f0d8"/><circle cx="65" cy="37" r="6.5" fill="#f6f0d8"/>
-  <ellipse cx="50" cy="66" rx="25" ry="13" fill="#7dbb5f" ${L}/>
-  <path d="M43 60h.1M57 60h.1" ${L} stroke-width="3.6"/>
-  <path d="M29 70L33 75L37 71L41 76L45 72L50 77L55 72L59 76L63 71L67 75L71 70" fill="#fff" ${THIN}/>
-  <path d="M38 87L50 92L38 98ZM62 87L50 92L62 98Z" fill="url(#kente)" ${L}/>
-  <circle cx="50" cy="92" r="3.2" fill="#d23a2a" ${THIN}/>
-  ${face(50, 37, { gap: 15, noMouth: true, cheeks: false })}`;
+  <path d="M32 74C18 77 7 70 3 57C11 64 20 66 32 63Z" fill="#5e9a4a" ${L}/>
+  <path d="M9 61l2-5 3 4M16 64l2-5 3 4" fill="#467a37" ${THIN}/>
+  <path d="M28 84V90H34V84M48 84V90H54V84" fill="#5e9a4a" ${L}/>
+  <ellipse cx="42" cy="74" rx="23" ry="12.5" fill="#5e9a4a" ${L}/>
+  <path d="M24 79C32 86 52 86 62 79" fill="#a9d68a" ${THIN}/>
+  <path d="M24 66l3-7 4 6M32 63l3-7 4 6M40 62l3-7 4 6M48 63l3-7 4 6" fill="#467a37" ${THIN}/>
+  <path d="M53 61C56 53 63 48 72 50L96 58C100 60 100 66 96 67L67 74C59 75 52 69 53 61Z" fill="#5e9a4a" ${L}/>
+  <path d="M66 66L95 63" fill="none" ${THIN}/>
+  <path d="M69 66l2 3.4 2-3.6M75 65.5l2 3.4 2-3.6M81 65l2 3.4 2-3.6M87 64.4l2 3.4 2-3.6" fill="#fff" ${THIN} stroke-width="1.2"/>
+  <circle cx="94" cy="60" r="1.4" fill="${INK}"/>
+  <circle cx="64" cy="50" r="6" fill="#5e9a4a" ${L}/><circle cx="74" cy="50" r="6" fill="#5e9a4a" ${L}/>
+  <circle cx="64" cy="50" r="4.2" fill="#f6f0d8"/><circle cx="74" cy="50" r="4.2" fill="#f6f0d8"/>
+  <path d="M55 62C59 64 61 71 59 77L53 77C55 71 53 65 50 63Z" fill="url(#kente)" ${THIN}/>
+  ${face(69, 50, { s: 0.8, gap: 6.2, noMouth: true, cheeks: false })}`;
 
 const parrot = () => `
   <path d="M41 80L35 97L50 90L65 97L59 80Z" fill="#d6372a" ${L}/>
@@ -197,9 +201,9 @@ const fisherman = () => {
 
 export const CHARACTERS = {
   tortoise: { team: 'forest', name: 'Nana Kwaku', kind: 'tortoise', draw: tortoise, crownY: 27 },
-  antelope: { team: 'forest', name: 'Abena', kind: 'antelope', draw: antelope, crownY: 31 },
+  antelope: { team: 'forest', name: 'Abena', kind: 'antelope', draw: antelope, crownY: 32 },
   spider: { team: 'forest', name: 'Kofi', kind: 'spider', draw: spider, crownY: 23 },
-  crocodile: { team: 'forest', name: 'Kwabena', kind: 'crocodile', draw: crocodile, crownY: 25 },
+  crocodile: { team: 'forest', name: 'Kwabena', kind: 'crocodile', draw: crocodile, crownY: 45, crownX: 19 },
   parrot: { team: 'forest', name: 'Akua', kind: 'parrot', draw: parrot, crownY: 23 },
   bushcat: { team: 'forest', name: 'Esi', kind: 'bush cat', draw: bushcat, crownY: 32 },
   trader: { team: 'market', name: 'Auntie Ama', kind: 'trader', draw: trader, crownY: 16 },
@@ -215,7 +219,7 @@ export const TEAM_ROSTER = {
   market: Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].team === 'market'),
 };
 
-const crown = (y) => `<g transform="translate(0 ${y - 16})"><g class="crown">
+const crown = (y, x = 0) => `<g transform="translate(${x} ${y - 16})"><g class="crown">
   <path d="M33 16L36 2L44 9L50 -1L56 9L64 2L67 16Z" fill="#f6c431" ${L}/>
   <circle cx="36" cy="2" r="2.4" fill="#d23a2a" ${THIN}/><circle cx="50" cy="-1" r="2.6" fill="#3f8f3a" ${THIN}/><circle cx="64" cy="2" r="2.4" fill="#d23a2a" ${THIN}/>
   <path d="M38 12H62" stroke="#c9890f" stroke-width="2"/></g></g>`;
@@ -224,12 +228,20 @@ const crown = (y) => `<g transform="translate(0 ${y - 16})"><g class="crown">
 export function characterSVG(key, { withBase = true } = {}) {
   const ch = CHARACTERS[key];
   const team = TEAMS[ch.team];
+  // Every piece stands on a ring: a faint light halo, a thick dark outline and the team colour.
+  // Forest rings carry a solid inner line, Market rings a dashed "stitched" one, so the
+  // teams differ by pattern as well as colour.
+  const inner = ch.team === 'forest'
+    ? `<ellipse cx="50" cy="91" rx="27" ry="5.6" fill="none" stroke="${team.ink}" stroke-width="2.4"/>`
+    : `<ellipse cx="50" cy="91" rx="28" ry="6" fill="none" stroke="#fff" stroke-width="2.6" stroke-dasharray="4.5 3.5"/>
+       <ellipse cx="50" cy="91" rx="39.5" ry="12" fill="none" stroke="#1d1a17" stroke-width="1.6"/>`;
   const base = withBase
-    ? `<ellipse class="base" cx="50" cy="91" rx="35" ry="9" fill="${team.color}" opacity=".6"/>
-       <path class="base-ring" d="M16 91C17 82 84 80 85 90C86 99 15 101 16 90" fill="none" stroke="${team.ink}" stroke-width="2.2" stroke-linecap="round"/>
+    ? `<ellipse class="halo" cx="50" cy="91" rx="43" ry="14" fill="#fff" opacity=".55"/>
+       <ellipse class="base" cx="50" cy="91" rx="35" ry="9.5" fill="${team.color}" stroke="#1d1a17" stroke-width="3.6"/>
+       ${inner}
        <path class="king-ring" d="M10 91C12 78 89 77 91 90C92 104 9 105 11 89" fill="none" stroke="#e0a800" stroke-width="2.4" stroke-dasharray="5 4" stroke-linecap="round"/>`
     : '';
-  return `<svg viewBox="0 -14 100 114" aria-hidden="true">${base}<g class="bob">${ch.draw()}${crown(ch.crownY)}</g></svg>`;
+  return `<svg viewBox="0 -14 100 114" aria-hidden="true">${base}<g class="bob">${ch.draw()}${crown(ch.crownY, ch.crownX)}</g></svg>`;
 }
 
 /** Shared pattern definitions referenced by every piece (kente cloth). */
@@ -242,4 +254,8 @@ export const DEFS_SVG = `<svg width="0" height="0" style="position:absolute" ari
     <rect x="4" y="9.5" width="4" height="1.2" fill="#1d1a17"/>
     <rect x="9.4" y="1" width="2.6" height="2.6" fill="#2f8a3b"/>
   </pattern>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="6" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
 </defs></svg>`;

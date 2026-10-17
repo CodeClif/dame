@@ -97,9 +97,9 @@ export function boardSVG(seed = 7) {
       if ((r + c) % 2 === 0) continue;
       const { a, b } = hatch(c * 100, r * 100, rand);
       squares += `<g class="sq" style="--d:${n++}">
-        <rect x="${c * 100 + 2}" y="${r * 100 + 2}" width="96" height="96" fill="#cfe7c4" opacity=".55"/>
-        <path d="${a}" stroke="#3d8b47" stroke-width="3.2" stroke-linecap="round" fill="none" opacity=".8"/>
-        <path d="${b}" stroke="#5aa463" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".55"/></g>`;
+        <rect class="sq-bg" x="${c * 100 + 2}" y="${r * 100 + 2}" width="96" height="96"/>
+        <path class="h-a" d="${a}" stroke-width="3.2" stroke-linecap="round" fill="none" opacity=".8"/>
+        <path class="h-b" d="${b}" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".55"/></g>`;
     }
   }
   let lines = '';
@@ -113,9 +113,10 @@ export function boardSVG(seed = 7) {
   // A second, offset outline like a pen that went round twice.
   lines += `<path pathLength="1" style="--i:${i++}" stroke-width="1.6" opacity=".6" d="${wobblyLine(-9, -6, 809, -9, rand, 3)}${wobblyLine(809, -9, 806, 809, rand, 3).replace('M', 'L')}${wobblyLine(806, 809, -6, 806, rand, 3).replace('M', 'L')}${wobblyLine(-6, 806, -9, -6, rand, 3).replace('M', 'L')}"/>`;
   return `<svg class="board-svg" viewBox="-12 -12 824 824" aria-hidden="true">
-    <rect x="0" y="0" width="800" height="800" fill="#fffef8" opacity=".7"/>
+    <rect class="paper" x="0" y="0" width="800" height="800"/>
+    <rect class="kente-frame" x="-9" y="-9" width="818" height="818" fill="none" stroke="url(#kente)" stroke-width="10"/>
     <g class="hatch">${squares}</g>
-    <g class="grid" fill="none" stroke="#24304f" stroke-linecap="round">${lines}</g></svg>`;
+    <g class="grid" fill="none" stroke-linecap="round">${lines}</g></svg>`;
 }
 
 // ---------- Title lettering: "Dame" as single pen strokes ----------

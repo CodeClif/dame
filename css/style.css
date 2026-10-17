@@ -624,3 +624,37 @@ body[data-play=days] #undo-btn, body[data-play=days] #hint-btn { display: none; 
 .games-list li.done .game-row { opacity: .7; }
 .menu-row.two { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
 .menu-row.two .sketch-btn { font-size: 19px; padding: 6px 2px; }
+
+/* ---------- character packs in the line-up ---------- */
+.pack-head { grid-column: 1 / -1; margin: 10px 0 0; font-size: 21px; font-weight: 700; color: var(--pen); }
+.pack-head small { font-weight: 500; font-size: 16px; color: var(--muted); }
+.card .lock { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); z-index: 2; font-size: 12px; font-weight: 700; color: #fff; background: #2b2622; border-radius: 8px; padding: 1px 6px; white-space: nowrap; }
+.card.sealed .pic { opacity: .45; filter: grayscale(1) brightness(.85); }
+
+/* ---------- post-game recap ---------- */
+.recap { text-align: left; margin: 4px 0 6px; border-left: 3px solid var(--margin); padding-left: 8px; }
+.recap p { display: flex; align-items: center; gap: 6px; margin: 2px 0; font-size: clamp(17px, 2.4vh, 20px); line-height: 1.1; }
+.recap .mini { flex: none; width: 28px; height: 32px; }
+.recap .mini svg { width: 100%; height: 100%; overflow: visible; }
+.recap .hand { color: var(--pen); }
+
+/* ---------- leagues ---------- */
+#lb-tabs button { font-size: 19px; }
+.board-list li.league-head { display: block; counter-increment: none; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+.board-list li.league-head::before { content: none; }
+.board-list li.league-head .g { display: block; }
+.tier { font-family: var(--hand); font-size: 28px; }
+.tier-0 { color: #8a8378; } .tier-1 { color: #b5703f; } .tier-2 { color: #4f74d0; } .tier-3 { color: #d23a2a; } .tier-4 { color: #c9890f; }
+.board-list li.up { background: rgba(61, 139, 71, .12); }
+.board-list li.down { background: rgba(214, 40, 40, .08); }
+body.night .board-list li.up { background: rgba(143, 227, 160, .12); }
+.pack { position: relative; }
+.pack h3 small.price { font-size: 20px; margin-left: 6px; }
+.pack .icons span.char { background: #f4efe2; }
+.pack .icons span.char svg { width: 48px; height: 54px; overflow: visible; }
+.pack .icons span.dim svg { opacity: .35; filter: grayscale(1); }
+.pack.free .icons { flex-wrap: wrap; }
+.pack.soon .stamp { position: absolute; top: 8px; right: 10px; margin: 0; font-size: 18px; }
+.pack.soon { opacity: .9; }
+.caption.long { font-size: 23px; } .caption.longer { font-size: 19px; }
+@media (min-height: 760px) { .caption.long { font-size: 25px; } .caption.longer { font-size: 21px; } }

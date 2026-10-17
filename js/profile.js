@@ -18,3 +18,14 @@ export function setNick(n) {
 }
 export const getGroup = () => profile.group || '';
 export function setGroup(id) { profile.group = /^[a-z0-9-]{2,40}$/.test(id) ? id : ''; save(); }
+
+/** A random player number made on this phone, so leagues can tell two "Kofi"s apart. Not personal data. */
+export function getPlayerId() {
+  if (!/^[a-z0-9]{12,32}$/.test(profile.pid || '')) {
+    const b = new Uint8Array(12);
+    crypto.getRandomValues(b);
+    profile.pid = [...b].map((x) => (x % 36).toString(36)).join('') + Date.now().toString(36).slice(-4);
+    save();
+  }
+  return profile.pid;
+}

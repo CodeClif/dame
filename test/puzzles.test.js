@@ -63,3 +63,31 @@ test('share text is short and WhatsApp friendly', () => {
   assert.match(t, /streak 4/);
   assert.ok(t.length < 140);
 });
+
+import { FREEZE_EVERY, onFreeze } from '../js/puzzles.js';
+
+test('a streak freeze is earned every 5 days and saves one missed day', () => {
+  let r = null;
+  for (let d = 1; d <= FREEZE_EVERY; d++) r = recordSolve(r, d, 1);
+  assert.equal(r.freezes, 1, 'earned a freeze at 5 days');
+  // miss day 6, come back on day 7
+  assert.equal(currentStreak(r, 7), 5, 'still alive while a freeze is available');
+  assert.ok(onFreeze(r, 7));
+  r = recordSolve(r, 7, 1);
+  assert.equal(r.streak, 6);
+  assert.equal(r.freezes, 0, 'the freeze was spent');
+  assert.deepEqual(r.frozen, [6]);
+  // miss another day without a freeze: the streak breaks
+  assert.equal(currentStreak(r, 9), 0);
+  r = recordSolve(r, 9, 1);
+  assert.equal(r.streak, 1);
+});
+
+test('two missed days break a streak even with a freeze, and freezes cap at 2', () => {
+  let r = null;
+  for (let d = 1; d <= 15; d++) r = recordSolve(r, d, 1);
+  assert.equal(r.freezes, 2);
+  assert.equal(currentStreak(r, 18), 0);
+  r = recordSolve(r, 18, 1);
+  assert.equal(r.streak, 1);
+});

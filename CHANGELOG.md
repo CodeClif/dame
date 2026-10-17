@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.0 — Keep people coming back
+
+- Weekly leagues of up to 30, grouped by when players become active, with tiers Pebble → Cowrie → Bead → Kente → Gold. Top 5 move up and bottom 5 move down in leagues of 10+. "My league" tab with nicknames only.
+- Streak freeze: earn one every 5 puzzle days (hold up to 2); a single missed day uses it and the streak survives. Shown as 🧊 on the menu.
+- Post-game recap: 2–4 handwritten lines in the characters' voices (best capture, missed jump, longest chain, crowning, parting word).
+- Two new free packs of 6 original characters each, drawn in code: **Chop Bar** (waakye, kenkey wrapper, chichinga, bofrot, pito, plantain) and **Wildlife** (mona monkey, hornbill, elephant, pangolin, grasscutter, red river hog), with Akan day-names and their own caption lines, unlocked by streaks, with a clearly labelled locked state. The line-up screen is grouped by pack.
+- Shop: free packs first; paid packs marked "coming soon". Nothing can be bought.
+- Points now count without a group (group is optional); leaderboards ignore players with no group.
+- `TESTING.md`: an iPhone test checklist. 59 end-to-end checks.
+
 ## 1.5.0 — Play over days
 
 - "Over days" mode on the Play-a-friend screen: start a game, move, and share the link. The friend replies whenever they like; the game is stored in Supabase.

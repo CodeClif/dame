@@ -10,6 +10,10 @@ Ghanaian-style draughts drawn in a school notebook. Forest animals take on the m
 - **Extras:** how-to-play page, sound toggle (synthesised, no audio files), captured-pieces tray, ad placeholders, character-pack shop preview with a "Pay via MoMo" button that is UI only. No entry fees, stakes or prizes anywhere.
 - **Light:** no build step, no frameworks, no images: everything is drawn in code. The whole site is about 230 KB (about 70 KB gzipped); online play, leaderboards and the replay recorder only load when used. Works offline after the first visit.
 
+## Test on an iPhone
+
+See [`TESTING.md`](TESTING.md) for a 15-minute checklist.
+
 ## Install on a phone
 
 Dame is an installable web app (PWA): it has a manifest, PNG icons (including a maskable icon for Android and an Apple touch icon), and a service worker that keeps the whole game working offline.
@@ -125,9 +129,28 @@ Expired rooms are invisible to the functions. To delete them, enable `pg_cron` a
 
 `rows` go top to bottom: `x`/`X` are your man/king (moving up), `o`/`O` the defender's. `moves` is how many of your moves it takes to force a win. Run `npm test` after editing: it fails if a puzzle can't be won in exactly that many moves. `node tools/make-puzzles.mjs` regenerates the 30 built-in puzzles.
 
-## Unlockable characters
+## Unlockable characters and packs
 
-Cosmetic only. Owl (3 wins in a row) and kenkey seller (5 in a row) come from win streaks against the computer or a friend; hedgehog (3 days) and tailor (7 days) from puzzle streaks. Four seasonal characters (Harmattan, rainy-season frog, Fancy Dress masquerader, caroler) are drawn and listed as "coming"; switch one on by removing its `seasonal` field in `js/characters.js`.
+Cosmetic only — every piece follows the same rules. Unlocks come from **win streaks** (against the computer or a friend) and **daily-puzzle streaks**:
+
+| Character | Pack | Unlock |
+| --- | --- | --- |
+| Nana Yaa (owl) · Maame Esi (kenkey seller) | Streak friends | win 3 / 5 in a row |
+| Kwesi (hedgehog) · Aunty Efua (tailor) | Streak friends | 3 / 7-day puzzle streak |
+| Auntie Akosua (waakye) · Sister Aba (kenkey wrapper) · Kofi Brokeman (plantain roaster) | Chop Bar | win 2 / 4 / 6 in a row |
+| Maame Ekua (bofrot) · Brother Kobina (chichinga) · Agya Kwamena (pito brewer) | Chop Bar | 2 / 5 / 14-day puzzle streak |
+| Afia (hornbill) · Ekow (grasscutter) · Nana Kwasi (elephant) | Wildlife | win 2 / 4 / 8 in a row |
+| Kwadwo (mona monkey) · Abenaa (pangolin) · Kweku (red river hog) | Wildlife | 2 / 4 / 10-day puzzle streak |
+
+Each pack character has a one-line personality (`quip` in `js/characters.js`) used in captions and the post-game recap. Four seasonal characters (Harmattan, rainy-season frog, Fancy Dress masquerader, caroler) are drawn and listed as "coming"; switch one on by removing its `seasonal` field.
+
+**Streak freeze:** every 5 days of puzzle streak earns a freeze (hold up to 2). Missing a single day spends one and the streak carries on.
+
+**Post-game recap:** after each game, 2–4 lines in the characters' voices — the best capture, a missed longer jump, the other side's longest chain, a crowning, and a parting word (`js/recap.js`, tested in `test/recap.test.js`).
+
+## Weekly leagues
+
+Players who score points in a week are grouped into leagues of up to 30, in the order they become active. Tiers: Pebble → Cowrie → Bead → Kente → Gold. When a week ends, in leagues of 10 or more, the top 5 move up and the bottom 5 move down (worked out when the player first scores the next week, so no scheduled job is needed). Players returning after a break start one tier lower. Only a nickname and a random player number generated on the phone are stored; the league table shows nicknames only. Tables: `dame_league_members`; functions `dame_add_points(p_player, …)` and `dame_league(p_player)`.
 
 ## Layout
 
@@ -150,6 +173,7 @@ Cosmetic only. Owl (3 wins in a row) and kenkey seller (5 in a row) come from wi
 | `tools/make-puzzles.mjs` | Generates verified puzzles. |
 | `supabase/schema.sql` | Everything Supabase needs. |
 | `js/analytics.js` | Anonymous daily counts. |
+| `js/recap.js` | Post-game recap lines. |
 | `js/days.js`, `js/push.js` | Play over days, My games, offline move queue, "your turn" notifications. |
 | `supabase/functions/dame-notify/` | Edge Function that sends the "your turn" push. |
 | `privacy.html`, `terms.html` | Plain-language privacy page and terms. |

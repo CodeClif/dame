@@ -91,20 +91,42 @@ export function puzzleForDay(puzzles, day) {
 // ---------- streaks and sharing ----------
 
 /** Update a streak record after solving the puzzle of `day`. */
+// Streak freeze: a streak survives one missed day by spending a freeze. You earn a freeze
+// every 5 days of streak, and can hold at most 2.
+export const FREEZE_EVERY = 5;
+export const MAX_FREEZES = 2;
+
 export function recordSolve(record, day, movesUsed) {
-  const r = { streak: 0, best: 0, last: 0, solved: {}, ...record, solved: { ...(record?.solved || {}) } };
+  const r = { streak: 0, best: 0, last: 0, solved: {}, freezes: 0, frozen: [], ...record };
+  r.solved = { ...(record?.solved || {}) };
+  r.frozen = [...(record?.frozen || [])];
   if (r.solved[day]) return r; // already counted today
-  r.streak = r.last === day - 1 ? r.streak + 1 : 1;
+  if (r.last === day - 1) r.streak += 1;
+  else if (r.last === day - 2 && r.freezes > 0) { // missed exactly one day: a freeze saves it
+    r.freezes -= 1;
+    r.frozen.push(day - 1);
+    r.streak += 1;
+  } else r.streak = 1;
+  if (r.streak % FREEZE_EVERY === 0) r.freezes = Math.min(MAX_FREEZES, r.freezes + 1);
   r.best = Math.max(r.best, r.streak);
   r.last = day;
   r.solved[day] = movesUsed;
   // keep the record small: only the last 60 days
   for (const d of Object.keys(r.solved)) if (Number(d) < day - 60) delete r.solved[d];
+  r.frozen = r.frozen.filter((d) => d >= day - 60);
   return r;
 }
 
-/** The streak as it stands today (it breaks if yesterday was missed). */
-export const currentStreak = (record, today) => (record && record.last >= today - 1 ? record.streak : 0);
+/** The streak as it stands today: alive if yesterday was solved, or one day was missed and a freeze is left. */
+export const currentStreak = (record, today) => {
+  if (!record) return 0;
+  if (record.last >= today - 1) return record.streak;
+  if (record.last === today - 2 && record.freezes > 0) return record.streak;
+  return 0;
+};
+
+/** True when today's streak is only alive thanks to a freeze (so the player can be told). */
+export const onFreeze = (record, today) => !!record && record.last === today - 2 && record.freezes > 0;
 
 export function shareText({ day, movesUsed, par, streak, url }) {
   const marks = Array.from({ length: par }, (_, i) => (i < movesUsed ? '🟢' : '⚪')).join('');

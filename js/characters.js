@@ -290,6 +290,178 @@ const caroler = () => {
   ${face(50, 50, { s: 0.92, gap: 6.5, mouth: 10 })}`;
 };
 
+// ---------- Chop Bar pack (market) ----------
+
+const arm = (x1, y1, x2, y2, skin) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${INK}" stroke-width="8" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="${skin}" stroke-width="4.6" stroke-linecap="round"/>`;
+
+const waakye = () => {
+  const k = SKIN[1];
+  return `
+  ${torso('#3d5fb8', `<path d="M36 74H64V97H36Z" fill="#f4efe4" ${THIN}/>`)}
+  ${ears(48, k)}${head(50, 47, 16, k)}
+  <path d="M32 44C30 26 70 26 68 44C62 38 38 38 32 44Z" fill="#e2502a" ${L}/>
+  <path d="M44 28C40 18 50 14 52 22C56 14 64 20 58 28Z" fill="#e2502a" ${L}/>
+  <path d="M38 34h24" stroke="#f6c431" stroke-width="2.4"/>
+  ${arm(28, 76, 30, 86, k)}${arm(72, 76, 70, 86, k)}
+  <path d="M22 84C36 82 64 82 78 84" fill="none" stroke="#3f8f3a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M26 84Q50 100 74 84Z" fill="#e9e2d0" ${L}/>
+  <path d="M30 84Q50 66 70 84Z" fill="#7a3b2a" ${L}/>
+  <path d="M38 78q3-4 6 0t6 0 6 0" fill="none" stroke="#f3e6c8" stroke-width="1.8" stroke-linecap="round"/>
+  <ellipse cx="60" cy="76" rx="5" ry="3.6" fill="#fff" ${THIN}/><circle cx="60" cy="76" r="1.8" fill="#f6b33c"/>
+  ${face(50, 49, { s: 0.92, gap: 6.5, mouth: 8 })}`;
+};
+
+const kenkeyWrap = () => {
+  const k = SKIN[4];
+  return `
+  ${torso('#3d5fb8', '<path d="M30 80H70M28 88H72" stroke="#f6c431" stroke-width="2.4"/>')}
+  ${ears(46, k)}${head(50, 45, 16, k)}
+  <path d="M33 42C31 24 69 24 67 42C62 36 38 36 33 42Z" fill="#3f8f3a" ${L}/>
+  <path d="M60 30L72 22L70 34Z" fill="#3f8f3a" ${THIN}/>
+  ${arm(30, 76, 40, 80, k)}${arm(70, 76, 60, 80, k)}
+  <path d="M38 70C38 62 62 62 62 70L64 90C64 96 36 96 36 90Z" fill="#dcc48d" ${L}/>
+  <path d="M42 66L40 92M50 64V95M58 66L60 92" stroke="#b59a5c" stroke-width="1.8"/>
+  <path d="M46 62C48 56 52 56 54 62" fill="none" stroke="#8a6a3b" stroke-width="2.4" stroke-linecap="round"/>
+  ${face(50, 47, { s: 0.92, gap: 6.5, mouth: 8 })}`;
+};
+
+const chichinga = () => {
+  const k = SKIN[5];
+  return `
+  ${torso('#3d5fb8', '<path d="M44 69L50 76L56 69" fill="#f4efe4"/>')}
+  ${ears(48, k)}${head(50, 47, 16, k)}
+  <path d="M32 40C32 24 68 24 68 40Z" fill="#2b2622" ${L}/><path d="M30 40H70" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+  ${arm(68, 78, 76, 62, k)}
+  <path d="M74 64L92 20M78 64L98 28M70 64L82 16" stroke="#a87442" stroke-width="2.2" stroke-linecap="round"/>
+  <rect x="83" y="28" width="7" height="7" rx="2" fill="#8a4a24" ${THIN} transform="rotate(20 86 31)"/>
+  <rect x="78" y="40" width="7" height="7" rx="2" fill="#a0572a" ${THIN} transform="rotate(20 81 43)"/>
+  <rect x="88" y="38" width="7" height="7" rx="2" fill="#8a4a24" ${THIN} transform="rotate(25 91 41)"/>
+  <rect x="76" y="24" width="6" height="6" rx="2" fill="#a0572a" ${THIN} transform="rotate(15 79 27)"/>
+  <path d="M86 12q-4-4 0-8M94 18q-4-4 0-8" fill="none" stroke="#c9c1b2" stroke-width="2" stroke-linecap="round"/>
+  ${face(50, 49, { s: 0.92, gap: 6.5, mouth: 8 })}`;
+};
+
+const bofrot = () => {
+  const k = SKIN[3];
+  return `
+  ${arm(30, 74, 26, 36, k)}${arm(70, 74, 74, 36, k)}
+  ${torso('#3d5fb8', '<path d="M30 76Q50 90 70 76" fill="none" stroke="#f4efe4" stroke-width="3"/>')}
+  ${head(50, 54, 15, k)}
+  <path d="M33 50C31 36 69 36 67 50C61 44 39 44 33 50Z" fill="#c0392b" ${L}/>
+  <path d="M22 18H78V38H22Z" fill="#dff1fa" opacity=".85" ${L}/>
+  <circle cx="34" cy="31" r="5.5" fill="#d99a3a" ${THIN}/><circle cx="46" cy="30" r="6" fill="#e3a648" ${THIN}/><circle cx="58" cy="31" r="5.5" fill="#d99a3a" ${THIN}/><circle cx="68" cy="30" r="5" fill="#e3a648" ${THIN}/>
+  <circle cx="40" cy="23" r="5" fill="#e3a648" ${THIN}/><circle cx="52" cy="23" r="5.5" fill="#d99a3a" ${THIN}/><circle cx="63" cy="23" r="5" fill="#e3a648" ${THIN}/>
+  <path d="M26 21l6-1M70 21l4 0" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  ${face(50, 56, { s: 0.9, gap: 6, mouth: 8 })}`;
+};
+
+const pito = () => {
+  const k = SKIN[0];
+  return `
+  ${torso('#3d5fb8', '<path d="M32 76V97M40 71V97M48 70V97M56 70V97M64 72V97" stroke="#f3efe4" stroke-width="2.2"/>')}
+  ${ears(46, k)}${head(50, 45, 16, k)}
+  <path d="M36 54C40 66 60 66 64 54C58 58 42 58 36 54Z" fill="#eeeeea" ${THIN}/>
+  <path d="M36 36C38 30 62 30 64 36" fill="none" stroke="#eeeeea" stroke-width="4" stroke-linecap="round"/>
+  <path d="M34 38C34 26 66 26 66 38Q50 32 34 38Z" fill="#b5703f" ${L}/>
+  ${arm(30, 78, 36, 82, k)}${arm(70, 78, 64, 82, k)}
+  <path d="M30 80H70C70 96 30 96 30 80Z" fill="#9a5b2c" ${L}/>
+  <ellipse cx="50" cy="80" rx="20" ry="4" fill="#c88b4f" ${THIN}/>
+  <path d="M34 79q4-3 8 0t8 0 8 0 8 0" fill="#f7efd8" stroke="#f7efd8" stroke-width="2" stroke-linecap="round"/>
+  ${face(50, 46, { s: 0.92, gap: 6.5, mouth: 11, cheeks: false })}`;
+};
+
+const plantain = () => {
+  const k = SKIN[2];
+  return `
+  ${torso('#3d5fb8', '<path d="M26 82H74" stroke="#f6c431" stroke-width="3"/>')}
+  ${ears(42, k)}${head(50, 41, 15, k)}
+  <ellipse cx="50" cy="31" rx="24" ry="5" fill="#d9c08a" ${L}/>
+  <path d="M38 30C38 18 62 18 62 30Z" fill="#cdb27a" ${L}/>
+  ${arm(30, 74, 30, 70, k)}
+  <path d="M26 72H74L68 96H32Z" fill="#3b3b3b" ${L}/>
+  <path d="M30 72q4-6 8 0t8 0 8 0 8 0 8 0 8 0" fill="#f08a24" stroke="#d2531f" stroke-width="1.6"/>
+  <path d="M30 66C38 60 50 60 60 64" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>
+  <path d="M30 66C38 60 50 60 60 64" fill="none" stroke="#e0b048" stroke-width="4" stroke-linecap="round"/>
+  <path d="M40 70C48 64 60 64 70 68" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>
+  <path d="M40 70C48 64 60 64 70 68" fill="none" stroke="#b9862e" stroke-width="4" stroke-linecap="round"/>
+  <path d="M44 66h.1M56 66h.1" stroke="#5a3a1a" stroke-width="2.6" stroke-linecap="round"/>
+  ${face(50, 43, { s: 0.9, gap: 6.5, mouth: 8 })}`;
+};
+
+// ---------- Wildlife pack (forest) ----------
+
+const mona = () => `
+  <path d="M70 82C88 82 94 64 86 54C82 48 76 52 80 58C84 64 80 74 70 74" fill="none" stroke="${INK}" stroke-width="6" stroke-linecap="round"/>
+  <path d="M70 82C88 82 94 64 86 54C82 48 76 52 80 58C84 64 80 74 70 74" fill="none" stroke="#7a5230" stroke-width="3" stroke-linecap="round"/>
+  <path d="M30 96C30 74 70 74 70 96Z" fill="#7a5230" ${L}/>
+  <path d="M40 96C40 82 60 82 60 96Z" fill="#f4ecd8"/>
+  <circle cx="26" cy="48" r="8" fill="#5a3a20" ${L}/><circle cx="74" cy="48" r="8" fill="#5a3a20" ${L}/>
+  <circle cx="50" cy="50" r="22" fill="#7a5230" ${L}/>
+  <path d="M30 56C30 68 42 74 50 74S70 68 70 56C66 62 58 62 50 62S34 62 30 56Z" fill="#f4ecd8"/>
+  <ellipse cx="50" cy="52" rx="13" ry="11" fill="#3a2a22"/>
+  <path d="M36 36C42 32 58 32 64 36" fill="none" stroke="#f4ecd8" stroke-width="4" stroke-linecap="round"/>
+  ${kenteStrip('M36 76L64 76L62 82L38 82Z')}
+  <circle cx="44" cy="51" r="4" fill="#f6ead2"/><circle cx="56" cy="51" r="4" fill="#f6ead2"/>
+  ${face(50, 51, { gap: 6, mouth: 9, cheeks: false })}`;
+
+const hornbill = () => `
+  <path d="M34 96C30 76 34 56 50 56S70 76 66 96Z" fill="#2b2622" ${L}/>
+  <path d="M42 92C42 78 46 70 50 70S58 78 58 92Z" fill="#f4f1ea"/>
+  <path d="M30 70C24 80 26 90 34 94" fill="#1d1a17" ${L}/>
+  <circle cx="44" cy="44" r="16" fill="#2b2622" ${L}/>
+  <path d="M54 36C66 30 84 34 92 44C80 44 68 46 58 50Z" fill="#f2b33a" ${L}/>
+  <path d="M56 36C62 26 78 24 84 32C76 32 66 34 58 38Z" fill="#e3622d" ${L}/>
+  <path d="M58 46C70 48 82 50 90 46" fill="none" ${THIN}/>
+  <circle cx="40" cy="42" r="5" fill="#f6ead2"/><circle cx="50" cy="42" r="5" fill="#f6ead2"/>
+  ${kenteStrip('M34 58Q44 64 56 58L55 64Q44 70 35 64Z')}
+  ${face(45, 42, { gap: 5, noMouth: true, cheeks: false })}`;
+
+const elephant = () => `
+  <path d="M10 44C6 24 30 18 36 34C38 50 30 66 18 64C12 62 10 54 10 44Z" fill="#9aa2a8" ${L}/>
+  <path d="M90 44C94 24 70 18 64 34C62 50 70 66 82 64C88 62 90 54 90 44Z" fill="#9aa2a8" ${L}/>
+  <path d="M16 44C14 32 26 28 30 38" fill="none" stroke="#c6a3a8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M84 44C86 32 74 28 70 38" fill="none" stroke="#c6a3a8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M36 62C30 68 28 74 31 78M64 62C70 68 72 74 69 78" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>
+  <path d="M36 62C30 68 28 74 31 78M64 62C70 68 72 74 69 78" fill="none" stroke="#fffdf4" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="50" cy="48" rx="22" ry="21" fill="#aab2b8" ${L}/>
+  <path d="M43 60C42 74 44 86 52 90C58 92 64 88 62 82C60 78 56 80 56 84C52 82 51 74 57 60Z" fill="#aab2b8" ${L}/>
+  <path d="M45 70q5 2 10 0M46 77q4 2 8 0" fill="none" stroke="#7d868c" stroke-width="1.6" stroke-linecap="round"/>
+  ${kenteStrip('M38 30Q50 24 62 30L60 36Q50 30 40 36Z')}
+  ${face(50, 48, { gap: 9, noMouth: true })}`;
+
+const pangolin = () => `
+  <path d="M74 84C92 84 96 64 84 56" fill="none" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>
+  <path d="M74 84C92 84 96 64 84 56" fill="none" stroke="#a87442" stroke-width="5" stroke-linecap="round"/>
+  <path d="M20 84C14 58 36 34 56 36C76 38 86 60 78 84Z" fill="#a87442" ${L}/>
+  <path d="M28 70q6-8 12 0q6-8 12 0q6-8 12 0M34 58q6-8 12 0q6-8 12 0q6-8 10 0M30 82q6-8 12 0q6-8 12 0q6-8 12 0M44 46q6-8 12 0q4-6 8 0" fill="none" stroke="#7a5230" stroke-width="2" stroke-linecap="round"/>
+  <path d="M14 76C10 64 16 54 28 56C32 66 30 76 24 80Z" fill="#e9c99a" ${L}/>
+  <path d="M30 88V94M64 88V94" ${L}/>
+  ${kenteStrip('M24 56L34 52L36 58L26 62Z')}
+  ${face(22, 66, { s: 0.7, gap: 4.5, mouth: 8, cheeks: false })}`;
+
+const grasscutter = () => `
+  <path d="M18 84C12 60 30 40 50 40S88 60 82 84Z" fill="#8a6a44" ${L}/>
+  <path d="M30 62q4-2 6 0M58 54q4-2 6 0M66 70q4-2 6 0M40 76q4-2 6 0" fill="none" stroke="#6b4f30" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="32" cy="42" r="6" fill="#8a6a44" ${L}/><circle cx="68" cy="42" r="6" fill="#8a6a44" ${L}/>
+  <ellipse cx="50" cy="66" rx="16" ry="12" fill="#c9a77a" ${L}/>
+  <path d="M44 74H56V82H44Z" fill="#f0b043" ${THIN}/><path d="M50 74V82" ${THIN}/>
+  <path d="M46 64L54 64L50 68Z" fill="#3a2a22"/>
+  <path d="M36 66L20 62M36 70L20 72M64 66L80 62M64 70L80 72" ${THIN} stroke-width="1.2"/>
+  ${kenteStrip('M26 86L74 86L72 92L28 92Z')}
+  ${face(50, 54, { gap: 10, noMouth: true })}`;
+
+const riverhog = () => `
+  <path d="M26 46L14 24L40 38ZM74 46L86 24L60 38Z" fill="#c25a2a" ${L}/>
+  <path d="M14 24l-4-7M14 24l-7-2M86 24l4-7M86 24l7-2" stroke="#f4f1ea" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M20 60C18 34 82 34 80 60C80 80 66 92 50 92S20 80 20 60Z" fill="#c25a2a" ${L}/>
+  <path d="M50 36V58" stroke="#2b2622" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+  <path d="M30 50C36 46 40 46 42 50M70 50C64 46 60 46 58 50" fill="none" stroke="#f4f1ea" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="50" cy="74" rx="14" ry="10" fill="#e88c6a" ${L}/>
+  <ellipse cx="45" cy="74" rx="2.4" ry="3" fill="${INK}"/><ellipse cx="55" cy="74" rx="2.4" ry="3" fill="${INK}"/>
+  <path d="M30 70L20 74M30 76L22 82M70 70L80 74M70 76L78 82" stroke="#f4f1ea" stroke-width="2" stroke-linecap="round"/>
+  ${kenteStrip('M30 88Q50 98 70 88L68 94Q50 102 32 94Z')}
+  ${face(50, 56, { gap: 10, mouth: 30, cheeks: false })}`;
+
 export const CHARACTERS = {
   tortoise: { team: 'forest', name: 'Nana Kwaku', kind: 'tortoise', draw: tortoise, crownY: 27 },
   antelope: { team: 'forest', name: 'Abena', kind: 'antelope', draw: antelope, crownY: 32 },
@@ -308,6 +480,20 @@ export const CHARACTERS = {
   hedgehog: { team: 'forest', name: 'Kwesi', kind: 'hedgehog', draw: hedgehog, crownY: 30, unlock: { type: 'puzzles', n: 3, text: '3-day puzzle streak' } },
   kenkey: { team: 'market', name: 'Maame Esi', kind: 'kenkey seller', draw: kenkey, crownY: 15, unlock: { type: 'wins', n: 5, text: 'Win 5 games in a row' } },
   tailor: { team: 'market', name: 'Aunty Efua', kind: 'tailor', draw: tailor, crownY: 22, unlock: { type: 'puzzles', n: 7, text: '7-day puzzle streak' } },
+  // Chop Bar pack (market): unlocked by win and puzzle streaks. Cosmetic only.
+  waakye: { team: 'market', pack: 'Chop Bar', name: 'Auntie Akosua', kind: 'waakye seller', draw: waakye, crownY: 18, unlock: { type: 'wins', n: 2, text: 'Win 2 games in a row' }, quip: 'Waakye with extra shito — and extra pieces for me.' },
+  bofrot: { team: 'market', pack: 'Chop Bar', name: 'Maame Ekua', kind: 'bofrot seller', draw: bofrot, crownY: 16, unlock: { type: 'puzzles', n: 2, text: '2-day puzzle streak' }, quip: 'Sweet and round, like a double jump.' },
+  kenkeywrap: { team: 'market', pack: 'Chop Bar', name: 'Sister Aba', kind: 'kenkey wrapper', draw: kenkeyWrap, crownY: 26, unlock: { type: 'wins', n: 4, text: 'Win 4 games in a row' }, quip: 'Wrapped tight, like your pieces in my corner.' },
+  chichinga: { team: 'market', pack: 'Chop Bar', name: 'Brother Kobina', kind: 'chichinga seller', draw: chichinga, crownY: 26, unlock: { type: 'puzzles', n: 5, text: '5-day puzzle streak' }, quip: 'Hot off the grill — just like this move.' },
+  plantain: { team: 'market', pack: 'Chop Bar', name: 'Kofi Brokeman', kind: 'plantain roaster', draw: plantain, crownY: 24, unlock: { type: 'wins', n: 6, text: 'Win 6 games in a row' }, quip: 'Roasted! Next customer, please.' },
+  pito: { team: 'market', pack: 'Chop Bar', name: 'Agya Kwamena', kind: 'pito brewer', draw: pito, crownY: 26, unlock: { type: 'puzzles', n: 14, text: '14-day puzzle streak' }, quip: 'Slow brew, strong finish.' },
+  // Wildlife pack (forest): unlocked by win and puzzle streaks. Cosmetic only.
+  mona: { team: 'forest', pack: 'Wildlife', name: 'Kwadwo', kind: 'mona monkey', draw: mona, crownY: 30, unlock: { type: 'puzzles', n: 2, text: '2-day puzzle streak' }, quip: 'Swing, jump, jump again!' },
+  hornbill: { team: 'forest', pack: 'Wildlife', name: 'Afia', kind: 'hornbill', draw: hornbill, crownY: 30, crownX: -6, unlock: { type: 'wins', n: 2, text: 'Win 2 games in a row' }, quip: 'I saw that move from the treetops.' },
+  pangolin: { team: 'forest', pack: 'Wildlife', name: 'Abenaa', kind: 'pangolin', draw: pangolin, crownY: 38, unlock: { type: 'puzzles', n: 4, text: '4-day puzzle streak' }, quip: 'Curl up, roll in, take one.' },
+  grasscutter: { team: 'forest', pack: 'Wildlife', name: 'Ekow', kind: 'grasscutter', draw: grasscutter, crownY: 38, unlock: { type: 'wins', n: 4, text: 'Win 4 games in a row' }, quip: 'Small teeth, big appetite for pieces.' },
+  riverhog: { team: 'forest', pack: 'Wildlife', name: 'Kweku', kind: 'red river hog', draw: riverhog, crownY: 38, unlock: { type: 'puzzles', n: 10, text: '10-day puzzle streak' }, quip: 'Snout down, straight through the middle.' },
+  elephant: { team: 'forest', pack: 'Wildlife', name: 'Nana Kwasi', kind: 'elephant', draw: elephant, crownY: 30, unlock: { type: 'wins', n: 8, text: 'Win 8 games in a row' }, quip: 'An elephant never forgets a missed jump.' },
   // Seasonal placeholders: drawn and listed, switched on in a later update.
   harmattan: { team: 'forest', name: 'Harmattan', kind: 'dusty breeze', draw: harmattan, crownY: 30, seasonal: 'Dec – Feb' },
   rainfrog: { team: 'forest', name: 'Nsuo', kind: 'rainy-season frog', draw: rainfrog, crownY: 40, seasonal: 'May – Jul' },

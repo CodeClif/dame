@@ -201,6 +201,7 @@ grant execute on function public.dame_count(text) to anon, authenticated;
 --   delete from public.dame_reports where created_at < now() - interval '90 days';
 --   delete from public.dame_scores  where created_at < now() - interval '12 weeks';
 --   delete from public.dame_days_games where last_move_at < now() - interval '30 days';
+--   delete from public.dame_league_members where week < current_date - interval '12 weeks';
 -- $$);
 
 -- ===================================================================== play over days
@@ -364,3 +365,130 @@ grant execute on function
   public.dame_days_move(text, text, int, text), public.dame_days_finish(text, text, text), public.dame_days_list(text[]),
   public.dame_days_subscribe(text, text, text, text, text), public.dame_days_unsubscribe(text, text)
   to anon, authenticated;
+
+-- ===================================================================== weekly leagues
+-- Players are grouped into leagues of up to 30 as they become active each week (the order
+-- they first score in = grouping by activity). Tiers 0..4 (Pebble, Cowrie, Bead, Kente, Gold).
+-- At the end of a week, in leagues with at least 10 players, the top 5 move up a tier and the
+-- bottom 5 move down. Only a nickname and a random player id made on the phone are stored.
+
+alter table public.dame_scores add column if not exists player_id text;
+alter table public.dame_scores alter column group_id drop not null;
+create index if not exists dame_scores_player on public.dame_scores (player_id, created_at);
+
+create table if not exists public.dame_league_members (
+  week       date not null,
+  player_id  text not null,
+  nickname   text not null,
+  tier       smallint not null default 0,
+  league_no  integer not null,
+  points     integer not null default 0,
+  joined_at  timestamptz not null default now(),
+  primary key (week, player_id)
+);
+create index if not exists dame_league_members_league on public.dame_league_members (week, tier, league_no);
+create index if not exists dame_league_members_player on public.dame_league_members (player_id, week);
+alter table public.dame_league_members enable row level security;
+drop policy if exists dame_league_members_no_direct_access on public.dame_league_members;
+create policy dame_league_members_no_direct_access on public.dame_league_members as restrictive for all to anon, authenticated using (false) with check (false);
+
+create or replace function public.dame_week()
+returns date language sql stable set search_path = public as $$
+  select (date_trunc('week', now() at time zone 'utc'))::date;
+$$;
+
+-- Put a player in this week's league (internal: not callable by clients).
+create or replace function public.dame_league_join(p_player text, p_nickname text)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  w date := dame_week();
+  last record;
+  t smallint := 0;
+  rnk int; cnt int; lg int;
+begin
+  if exists (select 1 from dame_league_members where week = w and player_id = p_player) then return; end if;
+  select tier, league_no into last from dame_league_members where week = w - 7 and player_id = p_player;
+  if found then
+    t := last.tier;
+    select r, n into rnk, cnt from (
+      select player_id, row_number() over (order by points desc, joined_at) as r, count(*) over () as n
+      from dame_league_members where week = w - 7 and tier = last.tier and league_no = last.league_no) l
+    where l.player_id = p_player;
+    if cnt >= 10 and rnk <= 5 and t < 4 then t := t + 1;
+    elsif cnt >= 10 and rnk > cnt - 5 and t > 0 then t := t - 1;
+    end if;
+  else
+    -- back after a break: one tier below where they last played
+    select greatest(tier - 1, 0) into t from dame_league_members where player_id = p_player order by week desc limit 1;
+    t := coalesce(t, 0);
+  end if;
+  select league_no into lg from dame_league_members where week = w and tier = t
+    group by league_no having count(*) < 30 order by league_no limit 1;
+  if lg is null then
+    select coalesce(max(league_no), 0) + 1 into lg from dame_league_members where week = w and tier = t;
+  end if;
+  insert into dame_league_members (week, player_id, nickname, tier, league_no)
+  values (w, p_player, p_nickname, t, lg) on conflict do nothing;
+end $$;
+
+-- Points with a player id (leagues) and an optional group (leaderboards).
+create or replace function public.dame_add_points(p_player text, p_nickname text, p_group text, p_points int, p_reason text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  allowed int := case p_reason
+    when 'cpu-easy' then 1 when 'cpu-medium' then 2 when 'cpu-hard' then 3
+    when 'online-win' then 3 when 'online-play' then 1 when 'puzzle' then 2 end;
+  grp text := nullif(p_group, '');
+begin
+  if allowed is null or p_points <> allowed then return false; end if;
+  if p_player !~ '^[a-z0-9]{12,32}$' or p_nickname !~ '^[^<>&"''\\]{2,16}$' then return false; end if;
+  if grp is not null and grp !~ '^[a-z0-9-]{2,40}$' then return false; end if;
+  if (select count(*) from dame_scores where player_id = p_player and created_at > now() - interval '10 minutes') >= 15 then return false; end if;
+  if (select coalesce(sum(points), 0) from dame_scores where player_id = p_player and created_at > now() - interval '1 day') >= 80 then return false; end if;
+  if p_reason = 'puzzle' and exists (select 1 from dame_scores where player_id = p_player and reason = 'puzzle' and created_at > date_trunc('day', now())) then return false; end if;
+  insert into dame_scores (nickname, group_id, points, reason, player_id) values (p_nickname, grp, p_points, p_reason, p_player);
+  perform dame_league_join(p_player, p_nickname);
+  update dame_league_members set points = points + p_points, nickname = p_nickname where week = dame_week() and player_id = p_player;
+  return true;
+end $$;
+
+-- This week's league table for one player: nicknames and points only.
+create or replace function public.dame_league(p_player text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare w date := dame_week(); m record; n int;
+begin
+  select * into m from dame_league_members where week = w and player_id = p_player;
+  if not found then
+    return jsonb_build_object('week', w, 'ends_at', (w + 7)::timestamp at time zone 'utc', 'joined', false);
+  end if;
+  select count(*) into n from dame_league_members where week = w and tier = m.tier and league_no = m.league_no;
+  return jsonb_build_object(
+    'week', w, 'ends_at', (w + 7)::timestamp at time zone 'utc', 'joined', true,
+    'tier', m.tier, 'league_no', m.league_no, 'size', n,
+    'promote', case when n >= 10 and m.tier < 4 then 5 else 0 end,
+    'demote', case when n >= 10 and m.tier > 0 then 5 else 0 end,
+    'members', (select jsonb_agg(jsonb_build_object('n', nickname, 'p', points, 'me', player_id = p_player) order by points desc, joined_at)
+                from dame_league_members where week = w and tier = m.tier and league_no = m.league_no));
+end $$;
+
+-- Group leaderboards ignore players who didn't pick a group.
+create or replace function public.dame_leaderboard()
+returns jsonb language sql stable security definer set search_path = public as $$
+  with w as (
+    select * from dame_scores where week = (date_trunc('week', now() at time zone 'utc'))::date
+  ), players as (
+    select nickname as n, max(group_id) as g, sum(points)::int as p from w
+    group by coalesce(player_id, nickname), nickname order by p desc, n limit 20
+  ), groups as (
+    select group_id as g, sum(points)::int as p, count(distinct coalesce(player_id, nickname))::int as c
+    from w where group_id is not null group by group_id order by p desc, g limit 20
+  )
+  select jsonb_build_object(
+    'week', (date_trunc('week', now() at time zone 'utc'))::date,
+    'players', coalesce((select jsonb_agg(to_jsonb(players)) from players), '[]'::jsonb),
+    'groups', coalesce((select jsonb_agg(to_jsonb(groups)) from groups), '[]'::jsonb));
+$$;
+
+revoke all on public.dame_league_members from anon, authenticated;
+revoke all on function public.dame_league_join(text, text) from public, anon, authenticated;
+grant execute on function public.dame_add_points(text, text, text, int, text), public.dame_league(text), public.dame_week() to anon, authenticated;

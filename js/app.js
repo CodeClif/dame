@@ -8,7 +8,8 @@ import { onlineConfigured } from './config.js';
 import { emptyProgress, isUnlocked, recordGame, recordPuzzleProgress } from './progress.js';
 import { getNick, getGroup } from './profile.js';
 import { count, setCountsAllowed } from './analytics.js';
-import { puzzleState, bestDefence, dayNumber, puzzleForDay, recordSolve, currentStreak, shareText, winningMove } from './puzzles.js';
+import { buildRecap } from './recap.js';
+import { puzzleState, bestDefence, dayNumber, puzzleForDay, recordSolve, currentStreak, onFreeze, shareText, winningMove } from './puzzles.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -96,6 +97,8 @@ function say(kind, force = false) {
   lastLine = text;
   const el = $('#caption');
   el.textContent = text;
+  el.classList.toggle('long', text.length > 24);
+  el.classList.toggle('longer', text.length > 36);
   el.classList.remove('show');
   void el.offsetWidth; // restart the write-in animation
   el.style.transform = `rotate(${((Math.random() - 0.5) * 5).toFixed(1)}deg)`;
@@ -210,21 +213,36 @@ function renderSetup() {
 }
 $('#speed-toggle').addEventListener('change', (e) => { settings.speed = e.target.checked; saveSettings(); sfx.tap(); });
 
+// Line-up cards, grouped: starters, streak unlocks, the two packs, then seasonal friends.
+const GROUPS = [
+  ['Starters', (c) => !c.unlock && !c.seasonal],
+  ['Streak friends', (c) => c.unlock && !c.pack],
+  ['Chop Bar pack', (c) => c.pack === 'Chop Bar'],
+  ['Wildlife pack', (c) => c.pack === 'Wildlife'],
+  ['Seasonal (coming soon)', (c) => c.seasonal],
+];
 function renderLineup(el, team) {
   const chosen = settings.lineups[team];
-  el.innerHTML = TEAM_ROSTER[team].map((k) => {
+  const card = (k) => {
     const ch = CHARACTERS[k];
     if (!isUnlocked(k, progress)) {
       const why = ch.seasonal ? `Coming: ${ch.seasonal}` : ch.unlock.text;
-      return `<button class="card off sealed" data-char="${k}" data-why="${why}" aria-disabled="true">
+      return `<button class="card off sealed" data-char="${k}" data-why="${why}" aria-disabled="true" aria-label="${ch.name}, locked: ${why}">
+        <span class="lock" aria-hidden="true">🔒 Locked</span>
         <span class="pic char">${characterSVG(k, { withBase: false })}</span>
-        <span class="nm">${ch.name}</span><span class="kd">🔒 ${why}</span></button>`;
+        <span class="nm">${ch.name}</span><span class="kd">${why}</span></button>`;
     }
     const on = chosen.includes(k);
     const locked = on && chosen.length === 1; // the last one can't be removed
-    return `<button class="card ${on ? 'on' : 'off'}${locked ? ' locked' : ''}" data-char="${k}" aria-pressed="${on}"${locked ? ' aria-disabled="true"' : ''}>
+    return `<button class="card ${on ? 'on' : 'off'}${locked ? ' locked' : ''}" data-char="${k}" aria-pressed="${on}"${locked ? ' aria-disabled="true"' : ''}${ch.quip ? ` title="${ch.quip}"` : ''}>
       <span class="pic char">${characterSVG(k, { withBase: false })}</span>
       <span class="nm">${ch.name}</span><span class="kd">${ch.kind}</span></button>`;
+  };
+  el.innerHTML = GROUPS.map(([label, test]) => {
+    const keys = TEAM_ROSTER[team].filter((k) => test(CHARACTERS[k]));
+    if (!keys.length) return '';
+    const open = keys.filter((k) => isUnlocked(k, progress)).length;
+    return `<p class="pack-head hand">${label}${label === 'Starters' ? '' : ` <small>${open}/${keys.length} unlocked</small>`}</p>${keys.map(card).join('')}`;
   }).join('');
   el.dataset.team = team;
 }
@@ -305,6 +323,7 @@ function newGame(config) {
     turnSeconds: config.turnSeconds || 0,
     puzzle: config.puzzle ? { ...config.puzzle, used: 0 } : null,
     timeline: [], // { snap, move } for the replay clip
+    record: [], // what happened each move, for the post-game recap
     localSide: config.localSide || 1,
     flip: NET.has(config.mode) && config.localSide === -1,
     online: config.online || null, // the online controller, when playing a friend
@@ -547,7 +566,9 @@ async function openPuzzle() {
 function refreshPuzzleButton() {
   const rec = puzzleRecord();
   const streak = currentStreak(rec, dayNumber());
-  $('#puzzle-btn').innerHTML = `Daily puzzle${rec?.solved?.[dayNumber()] ? ' ✓' : ''}${streak ? ` <small>🔥${streak}</small>` : ''}`;
+  const ice = rec?.freezes ? ` 🧊${rec.freezes}` : '';
+  const warn = onFreeze(rec, dayNumber()) ? ' — on ice!' : '';
+  $('#puzzle-btn').innerHTML = `Daily puzzle${rec?.solved?.[dayNumber()] ? ' ✓' : ''}${streak ? ` <small>🔥${streak}${ice}${warn}</small>` : ''}`;
 }
 
 function puzzleReply() {
@@ -583,12 +604,14 @@ function puzzleOver(won) {
     const before = puzzleRecord();
     if (today && !before?.solved?.[day]) {
       const rec = recordSolve(before, day, used);
+      if (rec.frozen.includes(day - 1) && !before?.frozen?.includes(day - 1)) notes += '<p class="unlock">🧊 A streak freeze saved your streak for the day you missed.</p>';
+      if (rec.freezes > (before?.freezes || 0)) notes += `<p class="unlock">🧊 You earned a streak freeze! It saves your streak if you miss a day (you have ${rec.freezes}).</p>`;
       try { localStorage.setItem(PUZZLE_KEY, JSON.stringify(rec)); } catch { /* ignore */ }
       streak = rec.streak;
       const r = recordPuzzleProgress(progress, rec);
       progress = r.progress;
       saveProgress();
-      notes = unlockNotes(r.unlocked);
+      notes += unlockNotes(r.unlocked);
       award('puzzle');
       refreshPuzzleButton();
     } else if (before?.solved?.[day]) {
@@ -875,6 +898,15 @@ async function performMove(move, remote = false) {
   G.selected = null;
   drawOverlay();
   const snap = snapshot();
+  G.record.push({
+    ply: G.log.length,
+    side: R.sideOf(G.state.board[move.from]),
+    char: G.pieces.get(G.ids[move.from])?.char,
+    captures: move.captures.length,
+    maxAvail: Math.max(0, ...R.getLegalMoves(G.state, G.opts).map((m) => m.captures.length)),
+    promote: !!move.promote,
+    victims: move.captures.map((c) => ({ char: G.pieces.get(G.ids[c])?.char, king: R.isKing(G.state.board[c]) })),
+  });
   G.history.push(snap);
   G.timeline.push({ snap, move });
   if (G.timeline.length > 40) G.timeline.shift();
@@ -915,6 +947,8 @@ async function performMove(move, remote = false) {
     sfx.king();
     say('king');
     setTimeout(() => el.classList.remove('crowning'), 900);
+  } else if (move.captures.length && CHARACTERS[info.char]?.quip && Math.random() < 0.5) {
+    say(CHARACTERS[info.char].quip); // pack characters have their own voice
   } else if (move.captures.length >= 2) {
     say('multi');
   } else if (backwards) {
@@ -1049,9 +1083,19 @@ function endGame(result) {
     };
     line = reasons[reason] || reasons.blocked;
   }
-  const party = winner
+  // The recap, in the characters' voices; it replaces the dancing line-up when there is one.
+  const recap = buildRecap({
+    entries: G.record.filter((e) => e.char),
+    localSide: G.mode === 'pnp' ? 1 : G.localSide,
+    winner,
+    twoHumans: G.mode === 'pnp',
+    who: (k) => CHARACTERS[k] || { name: '?', kind: '' },
+  });
+  const recapHtml = recap.length >= 2 ? `<div class="recap">${recap.map((l) => `<p><span class="mini char">${characterSVG(l.char, { withBase: false })}</span><span class="hand">${l.text}</span></p>`).join('')}</div>` : '';
+  const partyHtml = winner
     ? [...new Set(G.config.lineups[winner])].slice(0, 4).map((k) => `<div class="piece char cheer dance"><div class="hopper">${characterSVG(k)}</div></div>`).join('')
     : `<div class="piece char dance"><div class="hopper">${characterSVG(G.config.lineups[1][0])}</div></div><div class="piece char dance"><div class="hopper">${characterSVG(G.config.lineups[-1][0])}</div></div>`;
+  const party = recapHtml ? '' : partyHtml;
   const labels = G.online?.menuLabels || { rematch: 'Ask for a rematch', leave: 'Leave the room' };
   const onlineActions = `<div class="actions">
         <button class="sketch-btn big" data-act="orematch">${labels.rematch}</button>
@@ -1060,7 +1104,7 @@ function endGame(result) {
   setTimeout(() => {
     if (G.token !== endToken || !G.over) return; // the game was restarted meanwhile
     if (NET.has(G.mode)) {
-      openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>${notes}${onlineActions.replace('</div>', `${clip}</div>`)}
+      openModal(`<h2>${title}</h2>${party ? `<div class="party">${party}</div>` : ''}<p>${line}</p>${recapHtml}${notes}${onlineActions.replace('</div>', `${clip}</div>`)}
         <div class="ad-slot" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>`, {
         orematch: () => { G.online?.requestRematch(); },
         clip: () => makeClip(),
@@ -1068,7 +1112,7 @@ function endGame(result) {
       }, false);
       return;
     }
-    openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>${notes}
+    openModal(`<h2>${title}</h2>${party ? `<div class="party">${party}</div>` : ''}<p>${line}</p>${recapHtml}${notes}
       <div class="actions">
         <button class="sketch-btn big" data-act="rematch">Rematch</button>
         <div class="pair"><button class="sketch-btn" data-act="teams">Change crews</button>
@@ -1091,7 +1135,7 @@ function unlockNotes(keys) {
 /** Leaderboard points, sent only when the player has chosen a nickname and a group. */
 function award(reason) {
   const points = { 'cpu-easy': 1, 'cpu-medium': 2, 'cpu-hard': 3, 'online-win': 3, 'online-play': 1, puzzle: 2 }[reason];
-  if (!onlineConfigured() || !getNick() || !getGroup() || !points || !navigator.onLine) return;
+  if (!onlineConfigured() || !getNick() || !points || !navigator.onLine) return;
   import('./leaderboard.js').then((m) => m.addPoints(reason, points)).catch(() => {});
 }
 
@@ -1191,10 +1235,13 @@ function renderHowto() {
     </ul>
     <h3>Daily puzzle</h3>
     <p>One position a day, the same for everyone. Win within the number of moves shown (the computer defends as well as it can). Solve on consecutive days to grow your 🔥 streak, then share your result.</p>
+    <p><b>Streak freeze 🧊:</b> every 5 days in a row earns a freeze (hold up to 2). If you miss a single day, a freeze is used and your streak carries on.</p>
     <h3>Speed mode</h3>
     <p>Switch it on before a match: 10 seconds a turn. If the clock runs out, a random move is played for you.</p>
     <h3>Unlockable friends</h3>
-    <p>Win streaks and puzzle streaks unlock extra characters for your line-up. They only change how your pieces look — every piece follows the same rules. Seasonal friends arrive later in the year.</p>
+    <p>Win streaks and puzzle streaks unlock extra characters for your line-up, including the <b>Chop Bar</b> and <b>Wildlife</b> packs. They only change how your pieces look — every piece follows the same rules. Seasonal friends arrive later in the year.</p>
+    <h3>Weekly leagues</h3>
+    <p>Score points by winning games or solving the daily puzzle and you join a league of up to 30 players for the week: Pebble, Cowrie, Bead, Kente, then Gold. In leagues of 10 or more, the top 5 move up and the bottom 5 move down. Just for fun — no prizes.</p>
     <h3>Playing a friend online</h3>
     <ul>
       <li>Tap <b>Play a friend online</b>, pick a nickname and create a room. Share the invite link (or the 6-letter code) on WhatsApp or SMS.</li>
@@ -1222,13 +1269,25 @@ const PACKS = [
 ];
 
 function renderShop() {
-  $('#packs').innerHTML = PACKS.map((p) => `
-    <article class="pack">
+  // Free packs first: earned with streaks, never bought. Then paid previews, clearly "coming soon".
+  const free = ['Chop Bar', 'Wildlife'].map((pack) => {
+    const keys = Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].pack === pack);
+    const open = keys.filter((k) => isUnlocked(k, progress)).length;
+    return `<article class="pack free">
+      <h3>${pack} <small class="price">Free</small></h3>
+      <p>${pack === 'Chop Bar' ? 'Six street-food sellers for the Market Crew.' : 'Six wild animals for the Forest Friends.'} Unlocked by win streaks and puzzle streaks — ${open}/6 so far.</p>
+      <div class="icons">${keys.map((k) => `<span class="char${isUnlocked(k, progress) ? '' : ' dim'}" title="${CHARACTERS[k].name} · ${isUnlocked(k, progress) ? CHARACTERS[k].kind : CHARACTERS[k].unlock.text}">${characterSVG(k, { withBase: false })}</span>`).join('')}</div>
+    </article>`;
+  }).join('');
+  const paid = PACKS.map((p) => `
+    <article class="pack soon">
+      <span class="stamp">coming soon</span>
       <h3>${p.name}</h3><p>${p.blurb}</p>
       <div class="icons">${p.icons.map((i) => `<span>${packIcon(i)}</span>`).join('')}</div>
       <div class="row"><span class="price">${p.price}</span>
-        <button class="sketch-btn momo" data-pack="${p.id}">Pay via MoMo</button></div>
+        <button class="sketch-btn momo" data-pack="${p.id}">Pay via MoMo · soon</button></div>
     </article>`).join('');
+  $('#packs').innerHTML = `${free}<p class="pack-head hand">Coming soon</p>${paid}`;
 }
 
 $('#packs').addEventListener('click', (e) => {

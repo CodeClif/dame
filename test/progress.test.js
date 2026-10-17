@@ -16,7 +16,9 @@ test('win streaks unlock characters and losses reset the streak', () => {
   let p = emptyProgress();
   const unlocked = [];
   for (let i = 0; i < 5; i++) { const r = recordGame(p, true); p = r.progress; unlocked.push(...r.unlocked); }
-  assert.deepEqual(unlocked.sort(), ['kenkey', 'owl']);
+  const expected = Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].unlock?.type === 'wins' && CHARACTERS[k].unlock.n <= 5);
+  assert.deepEqual(unlocked.sort(), expected.sort());
+  assert.ok(unlocked.includes('owl') && unlocked.includes('kenkey') && unlocked.includes('hornbill'));
   p = recordGame(p, false).progress;
   assert.equal(p.winStreak, 0);
   assert.equal(p.bestWin, 5);
@@ -33,7 +35,9 @@ test('puzzle streaks unlock characters', () => {
     p = r.progress;
     unlocked.push(...r.unlocked);
   }
-  assert.deepEqual(unlocked, ['hedgehog', 'tailor']);
+  const expected = Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].unlock?.type === 'puzzles' && CHARACTERS[k].unlock.n <= 7);
+  assert.deepEqual(unlocked.sort(), expected.sort());
+  assert.ok(unlocked.includes('hedgehog') && unlocked.includes('tailor') && unlocked.includes('mona'));
 });
 
 test('seasonal characters are placeholders and stay locked', () => {
@@ -41,4 +45,19 @@ test('seasonal characters are placeholders and stay locked', () => {
   assert.equal(seasonal.length, 4);
   const p = { ...emptyProgress(), bestWin: 99, puzzle: { best: 99 } };
   for (const k of seasonal) assert.equal(isUnlocked(k, p), false);
+});
+
+test('the Chop Bar and Wildlife packs have six original characters each, with day-names and quips', () => {
+  for (const [pack, team] of [['Chop Bar', 'market'], ['Wildlife', 'forest']]) {
+    const keys = Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].pack === pack);
+    assert.equal(keys.length, 6, pack);
+    for (const k of keys) {
+      const c = CHARACTERS[k];
+      assert.equal(c.team, team);
+      assert.ok(c.unlock && c.quip && c.name, `${k} needs an unlock, a name and a quip`);
+      assert.equal(isUnlocked(k, emptyProgress()), false, `${k} starts locked`);
+    }
+  }
+  const names = Object.values(CHARACTERS).map((c) => c.name);
+  assert.equal(new Set(names).size, names.length, 'every character has its own name');
 });

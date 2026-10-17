@@ -298,6 +298,70 @@ async function playPlies(host, guest, n) {
   await host.context().close(); await guest.context().close();
 }
 
+// ---------------------------------------------------------------- keep coming back: recap, freeze, packs, leagues
+{
+  const p = await phone({ nick: 'Kofi B' });
+  await p.goto(BASE); await p.click('#home'); await p.click('[data-mode=cpu]'); await p.click('#start-btn'); await idle(p);
+  // a quick win with a double jump
+  await p.evaluate(() => dame.position(['........', '........', '...o....', '........', '.o......', 'x.......', '........', '........'], 1));
+  await move(p, sq(5, 0), sq(1, 4));
+  await modalTitle(p);
+  const recap = await p.evaluate(() => [...document.querySelectorAll('#sheet .recap p')].map((x) => x.textContent));
+  check('recap: handwritten lines in the characters’ voices after a game', recap.length >= 2 && recap.length <= 4 && recap.some((l) => /Double wahala on move 1/.test(l)), JSON.stringify(recap));
+  await p.click('.sheet-x');
+
+  // leagues: that win earned points and a place in a league
+  await p.waitForTimeout(800);
+  await p.evaluate(() => dame.go('home'));
+  await p.click('#leaders-btn');
+  await p.waitForSelector('.league-head', { timeout: 10000 });
+  const league = await p.textContent('#lb-list');
+  check('leagues: the win puts you in this week’s Pebble league with your nickname only', /Pebble league/.test(league) && /Kofi B/.test(league) && /ends in/.test(league), league.replace(/\s+/g, ' ').trim().slice(0, 120));
+  const lcols = await mock.pg.query(`select column_name from information_schema.columns where table_name = 'dame_league_members'`);
+  check('leagues: only a nickname and a random player number are stored', !lcols.rows.some((r) => /mail|phone|ip|device|name$/.test(r.column_name) && r.column_name !== 'nickname'), lcols.rows.map((r) => r.column_name).join(','));
+
+  // streak freeze: solved 5 days in a row up to two days ago, missed yesterday
+  await p.evaluate(async () => {
+    const m = await import('./js/puzzles.js');
+    const today = m.dayNumber();
+    let r = null;
+    for (let d = today - 6; d <= today - 2; d++) r = m.recordSolve(r, d, 1);
+    localStorage.setItem('dame.puzzle.v1', JSON.stringify(r));
+  });
+  await p.goto(BASE); await p.click('#home');
+  const btn = await p.textContent('#puzzle-btn');
+  check('streak freeze: a missed day keeps the streak alive “on ice”', /🔥5/.test(btn) && /🧊1/.test(btn) && /ice/.test(btn), btn.trim());
+  await p.click('#puzzle-btn');
+  await p.waitForFunction(() => dame.game?.mode === 'puzzle' && !dame.game.busy, null, { timeout: 10000 });
+  for (let i = 0; i < 4; i++) {
+    await p.waitForFunction(() => dame.game.over || (dame.game.state.turn === 1 && !dame.game.busy), null, { timeout: 10000 });
+    if (await p.evaluate(() => dame.game.over)) break;
+    const [a, b] = await p.evaluate(async () => { const m = await import('./js/puzzles.js'); const g = dame.game; const mv = m.winningMove(g.state, g.puzzle.par - g.puzzle.used, g.opts); return [mv.from, mv.to]; });
+    await move(p, a, b);
+    await p.waitForTimeout(300);
+  }
+  await p.waitForSelector('text=Solved!', { timeout: 10000 });
+  const solved = await p.textContent('#sheet');
+  check('streak freeze: solving today spends the freeze and continues the streak', /6-day streak/.test(solved) && /freeze saved your streak/.test(solved), solved.replace(/\s+/g, ' ').match(/🔥[^.]*streak/)?.[0]);
+  await p.click('.sheet-x');
+
+  // the two new packs: listed, grouped and clearly locked
+  await p.evaluate(() => dame.go('home'));
+  await p.click('[data-mode=cpu]');
+  await p.click('#team-seg [data-team=market]');
+  const heads = await p.evaluate(() => [...document.querySelectorAll('#lineup1 .pack-head')].map((h) => h.textContent));
+  const chop = await p.evaluate(() => [...document.querySelectorAll('#lineup1 .card')].filter((c) => ['waakye', 'bofrot', 'kenkeywrap', 'chichinga', 'plantain', 'pito'].includes(c.dataset.char)).map((c) => [c.dataset.char, c.classList.contains('sealed'), c.querySelector('.lock')?.textContent || '']));
+  check('packs: Chop Bar is listed with six characters', heads.some((h) => /Chop Bar/.test(h)) && chop.length === 6, heads.join(' / '));
+  check('packs: locked characters say they are locked and how to unlock', chop.filter(([, sealed]) => sealed).every(([, , lock]) => /Locked/.test(lock)) && chop.some(([k, sealed]) => k === 'bofrot' && !sealed) && chop.some(([k, sealed]) => k === 'waakye' && sealed), JSON.stringify(chop));
+  await p.click('#team-seg [data-team=forest]');
+  const wild = await p.evaluate(() => [...document.querySelectorAll('#lineup1 .card')].filter((c) => ['mona', 'hornbill', 'elephant', 'pangolin', 'grasscutter', 'riverhog'].includes(c.dataset.char)).length);
+  check('packs: Wildlife is listed with six characters', wild === 6);
+  await p.evaluate(() => dame.go('shop'));
+  const shop = await p.textContent('#packs');
+  check('shop: free packs shown, paid packs clearly “coming soon”', /Chop Bar\s*Free/.test(shop) && /coming soon/i.test(shop));
+  await p.context().close();
+}
+
 // ---------------------------------------------------------------- database rules (the real SQL)
 {
   const q = (sql, args) => mock.pg.query(sql, args);

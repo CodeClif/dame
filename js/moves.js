@@ -326,6 +326,12 @@ const STRIKES = {
     await wait(520);
     return exit(victim, base, 'eaten');
   },
+  async bite({ svg, victim, base }) {
+    const marks = add(svg, `<path d="M30 40l5 7 5-7 5 7 5-7 5 7 5-7 5 7 5-7" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>`);
+    anim(marks, [{ opacity: 1 }, { opacity: 0 }], { duration: 500, delay: 200 });
+    word(svg, 'CHOMP!');
+    return exit(victim, base, 'eaten');
+  },
   async stomp({ svg, victim, base, board }) {
     board?.animate([{ transform: 'translate(0,0)' }, { transform: 'translate(-3px,2px)' }, { transform: 'translate(3px,-2px)' }, { transform: 'translate(-2px,1px)' }, { transform: 'none' }], 320);
     const ring = add(svg, `<ellipse cx="50" cy="74" rx="30" ry="9" fill="none" stroke="#9aa2a8" stroke-width="3"/>`);
@@ -339,12 +345,19 @@ const STRIKES = {
  * Play a character's capture skill on the piece it just jumped.
  * @returns {Promise<void>} resolves once the captured piece has left the board
  */
-export function strike(key, { fx, victim, base, r, c, mover, board, dir = 1 }) {
+export function strike(key, { fx, victim, base, r, c, mover, board, dir = 1, type }) {
   const skill = skillOf(key);
   const holder = box(fx, r, c);
   const svg = holder.querySelector('svg');
-  const run = STRIKES[skill.strike] || STRIKES.spinout;
+  const run = STRIKES[type || skill.strike] || STRIKES.spinout;
   const done = run({ svg, victim, base, mover, board, dir, color: skill.color }).catch(() => victim.remove());
   setTimeout(() => holder.remove(), 1600);
   return done;
+}
+
+/** A handwritten shout ("TOOT!") over a square, with no piece involved. */
+export function shout(fx, r, c, text, color) {
+  const holder = box(fx, r, c);
+  word(holder.querySelector('svg'), text, color);
+  setTimeout(() => holder.remove(), 1000);
 }

@@ -518,7 +518,7 @@ const crown = (y, x = 0) => `<g transform="translate(${x} ${y - 16})"><g class="
   <path d="M38 12H62" stroke="#c9890f" stroke-width="2"/></g></g>`;
 
 /** Full piece SVG for a character. */
-export function characterSVG(key, { withBase = true } = {}) {
+export function characterSVG(key, { withBase = true, drawing = null } = {}) {
   const ch = CHARACTERS[key];
   const team = TEAMS[ch.team];
   // Every piece stands on a ring: a faint light halo, a thick dark outline and the team colour.
@@ -534,7 +534,7 @@ export function characterSVG(key, { withBase = true } = {}) {
        ${inner}
        <path class="king-ring" d="M10 91C12 78 89 77 91 90C92 104 9 105 11 89" fill="none" stroke="#e0a800" stroke-width="2.4" stroke-dasharray="5 4" stroke-linecap="round"/>`
     : '';
-  return `<svg viewBox="0 -14 100 114" aria-hidden="true">${base}<g class="bob">${ch.draw()}${crown(ch.crownY, ch.crownX)}</g></svg>`;
+  return `<svg viewBox="0 -14 100 114" aria-hidden="true">${base}<g class="bob">${drawing ?? ch.draw()}${crown(ch.crownY, ch.crownX)}</g></svg>`;
 }
 
 /** Shared pattern definitions referenced by every piece (kente cloth). */
@@ -552,3 +552,6 @@ export const DEFS_SVG = `<svg width="0" height="0" style="position:absolute" ari
     <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter>
 </defs></svg>`;
+
+/** Drawing helpers, shared with the moving-parts versions in js/rigs.js. */
+export const PARTS = { INK, L, THIN, SKIN, face, kenteStrip, head, torso, ears, arm };

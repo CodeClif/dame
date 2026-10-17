@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Dame — motion sample</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Patrick+Hand&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    html, body { height: auto; }
+    body { overflow-x: hidden; overflow-y: auto; padding: 14px 16px 40px 48px; user-select: auto; -webkit-user-select: auto; }
+    h1 { font: 700 34px/1.1 var(--hand); color: var(--pen); margin: 6px 0 2px; }
+    .intro { margin: 0 0 12px; line-height: 1.35; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 8px; position: sticky; top: 0; z-index: 20; padding: 6px 0; background: var(--paper); }
+    .seg { display: inline-flex; border: 2.4px solid var(--ink); border-radius: 12px 14px 11px 15px; overflow: hidden; }
+    .seg button { border: 0; background: var(--card); padding: 6px 12px; font: 700 18px var(--hand); white-space: nowrap; }
+    .seg button + button { border-left: 2px solid var(--ink); }
+    .seg button.on { background: var(--hi); }
+    .who { margin: 22px 0 6px; max-width: 420px; }
+    .who h2 { font: 700 26px/1.1 var(--hand); margin: 0; color: var(--ink); }
+    .who h2 small { font-size: 18px; color: var(--muted); font-weight: 500; }
+    .who .sk { font: 700 20px var(--hand); color: var(--red); margin: 0; }
+    .who p { margin: 2px 0 8px; line-height: 1.3; font-size: 16px; }
+    .mini { position: relative; width: min(100%, 380px); aspect-ratio: 5 / 3; border: 2.6px solid var(--ink); border-radius: 4px; margin-top: 28px;
+      background-color: #fffef8; overflow: visible; }
+    .mini .sq { position: absolute; width: 20%; height: 33.333%; transform: translate(calc(var(--c) * 100%), calc(var(--r) * 100%));
+      background: repeating-linear-gradient(-45deg, #8cc489 0 2px, #e3f1dd 2px 6px); outline: 1px solid rgba(43, 38, 34, .5); }
+    .mini .pieces, .mini .fx { position: absolute; inset: 0; pointer-events: none; }
+    .mini .fx { z-index: 60; }
+    .mini .piece { width: 20%; height: 33.333%; }
+    .mini .piece.acting { z-index: 50; }
+    .mini .spark { width: 20%; height: 33.333%; }
+    .row { display: flex; gap: 10px; margin-top: 10px; }
+    .row button { border: 2.4px solid var(--ink); background: var(--card); border-radius: 14px 11px 15px 12px; padding: 6px 16px; font: 700 20px var(--hand); box-shadow: 2px 3px 0 var(--shadow); }
+    .row button:active { transform: translate(2px, 2px); box-shadow: none; }
+    .row button:disabled { opacity: .5; }
+    .note { font: 500 20px var(--hand); color: var(--pen); margin-top: 26px; max-width: 420px; }
+    a { color: var(--pen); }
+  </style>
+</head>
+<body>
+  <h1>Motion sample</h1>
+  <p class="intro">Four characters with moving parts. On the board they look just like now (watch them blink and fidget). When they move they come alive. Tap <b>Move</b> or <b>Capture</b>.</p>
+  <div class="controls">
+    <span class="seg" id="mode"><button data-v="full" class="on">Full</button><button data-v="simple">Simple</button></span>
+    <span class="seg" id="speed"><button data-v="1" class="on">Normal</button><button data-v="3">Slow-mo</button></span>
+  </div>
+  <div id="list"></div>
+  <p class="note">“Simple” is what you’d see with animations off for you — your friend still sees the full show on their phone. <a href="./">← Back to the game</a></p>
+  <script type="module">
+    import { characterSVG, DEFS_SVG, CHARACTERS } from './js/characters.js';
+    import { rigMarkup, act, fidget, setSlow } from './js/rigs.js';
+
+    document.body.insertAdjacentHTML('afterbegin', DEFS_SVG);
+    const CAST = [
+      { key: 'parrot', foe: 'trader', skill: 'Feather Flurry', how: 'Opens her wings and flies over, leaving her ring on the ground like a shadow. To capture she dives at the piece in a burst of feathers.' },
+      { key: 'crocodile', foe: 'drummer', skill: 'Jaw Snap', how: 'Turns to face the way he’s going and crawls, legs paddling, tail swishing. To capture he creeps up, opens wide and bites — CHOMP!' },
+      { key: 'waakye', foe: 'tortoise', skill: 'Shito Splash', how: 'Gets up on her feet and walks, hips swaying, bowl wobbling, steam rising. To capture she leans in and flings a spoonful of shito.' },
+      { key: 'elephant', foe: 'fisherman', skill: 'Trunk Stomp', how: 'Plods along on four stumpy legs, ears flapping, trunk swinging. To capture he rears up — TOOT! — and stomps. The board shakes.' },
+    ];
+    let mode = 'full';
+    const HOME = [2, 2];
+
+    const pieceEl = (key, [r, c], rigged) => {
+      const el = document.createElement('div');
+      el.className = 'piece char';
+      el.innerHTML = `<div class="hopper">${characterSVG(key, rigged ? { drawing: rigMarkup(key) } : {})}</div>`;
+      el.style.setProperty('--r', r);
+      el.style.setProperty('--c', c);
+      el.style.setProperty('--delay', `${(-Math.random() * 2.6).toFixed(2)}s`);
+      el.style.setProperty('--blink', `${(-Math.random() * 4.6).toFixed(2)}s`);
+      return el;
+    };
+
+    // Simple mode: the piece glides, the captured one spins away.
+    async function glide(el, from, to, victim) {
+      const t = ([r, c]) => `translate(calc(${c} * 100%), calc(${r} * 100%))`;
+      await el.animate([{ transform: t(from) }, { transform: t(to) }], { duration: 380, easing: 'ease-in-out' }).finished;
+      el.style.setProperty('--r', to[0]); el.style.setProperty('--c', to[1]);
+      if (victim) {
+        victim.el.classList.add('shocked');
+        const b = t([victim.r, victim.c]);
+        await victim.el.animate([{ transform: b }, { transform: `${b} translateY(-22%) rotate(-10deg)`, offset: 0.35 }, { transform: `${b} translateY(35%) rotate(170deg) scale(0)`, opacity: 0 }], { duration: 600, easing: 'ease-in', fill: 'forwards' }).finished;
+        victim.el.remove();
+      }
+    }
+
+    const boards = [];
+    for (const who of CAST) {
+      const ch = CHARACTERS[who.key];
+      const sec = document.createElement('section');
+      sec.className = 'who';
+      sec.innerHTML = `<h2>${ch.name} <small>${ch.kind}</small></h2><p class="sk">✨ ${who.skill}</p><p>${who.how}</p>
+        <div class="mini"><div class="pieces"></div><div class="fx"></div></div>
+        <div class="row"><button data-a="move">Move</button><button data-a="capture">Capture</button></div>`;
+      document.getElementById('list').appendChild(sec);
+      const board = sec.querySelector('.mini');
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) if ((r + c) % 2 === 0) board.insertAdjacentHTML('afterbegin', `<div class="sq" style="--r:${r};--c:${c}"></div>`);
+      const pieces = board.querySelector('.pieces');
+      const fx = board.querySelector('.fx');
+      const me = pieceEl(who.key, HOME, true);
+      pieces.appendChild(me);
+      const state = { at: HOME, step: 0, busy: false };
+      boards.push({ key: who.key, el: me });
+      const buttons = sec.querySelectorAll('button');
+      const run = async (fn) => {
+        if (state.busy) return;
+        state.busy = true; buttons.forEach((b) => { b.disabled = true; });
+        try { await fn(); } finally { state.busy = false; buttons.forEach((b) => { b.disabled = false; }); }
+      };
+      const go = (to, victim) => (mode === 'full' ? act(who.key, me, state.at, to, victim, { fx, board }) : glide(me, state.at, to, victim)).then(() => { state.at = to; });
+      sec.querySelector('[data-a=move]').onclick = () => run(async () => {
+        // Home → up-right → home → up-left → home, so both directions show.
+        const back = state.at[0] !== HOME[0] || state.at[1] !== HOME[1];
+        const to = back ? HOME : (state.step++ % 2 ? [1, 1] : [1, 3]);
+        await go(to);
+      });
+      sec.querySelector('[data-a=capture]').onclick = () => run(async () => {
+        if (state.at[0] !== HOME[0] || state.at[1] !== HOME[1]) await go(HOME);
+        const side = state.step++ % 2 ? -1 : 1;
+        const vr = 1, vc = HOME[1] + side;
+        const foe = pieceEl(who.foe, [vr, vc], false);
+        pieces.appendChild(foe);
+        foe.animate([{ opacity: 0 }, { opacity: 1 }], 250);
+        await new Promise((r) => setTimeout(r, 450));
+        await go([0, HOME[1] + 2 * side], { el: foe, r: vr, c: vc });
+        await new Promise((r) => setTimeout(r, 700));
+        await go(HOME);
+      });
+    }
+
+    // Idle fidgets: now and then one character tilts its head, yawns, flaps its ears…
+    setInterval(() => {
+      if (mode !== 'full' || document.hidden) return;
+      const b = boards[Math.floor(Math.random() * boards.length)];
+      fidget(b.key, b.el);
+    }, 1800);
+
+    const seg = (id, fn) => document.getElementById(id).addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      for (const x of b.parentNode.children) x.classList.toggle('on', x === b);
+      fn(b.dataset.v);
+    });
+    seg('mode', (v) => { mode = v; });
+    seg('speed', (v) => setSlow(Number(v)));
+  </script>
+</body>
+</html>

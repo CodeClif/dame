@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2
+
+- Every pop-up has a ✕ close button, including after sharing a result.
+- Pop-ups are smaller and scale with the screen: tighter text and buttons, paired buttons side by side, no scrolling on small phones.
+- Chat now docks in the space under the board instead of floating over it, and speech bubbles stay inside the player's own name bar, so nothing hides a move.
+
 ## 1.3.1
 
 - Gentler sounds: soft wooden xylophone notes on a pentatonic scale, quieter overall, no scratchy noise or buzzer.

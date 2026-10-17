@@ -593,17 +593,18 @@ function puzzleOver(won) {
     openModal(won
       ? `<h2>Solved! 🧩</h2><p>Puzzle #${day} · ${used}/${par} move${par > 1 ? 's' : ''}<br><b>🔥 ${streak}-day streak</b></p>${notes}
         <div class="actions">
-          <button class="sketch-btn big" data-act="share">Share result</button>
-          <a class="sketch-btn wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">Send on WhatsApp</a>
-          ${clip}
-          <button class="sketch-btn" data-act="home">Main menu</button>
+          <div class="pair">
+            <button class="sketch-btn big" data-act="share">Share</button>
+            <a class="sketch-btn big wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+          <div class="pair">${clip}<button class="sketch-btn" data-act="home">Main menu</button></div>
         </div>
         <p class="note">A new puzzle every day at midnight (GMT).</p>`
       : `<h2>Not quite!</h2><p>Puzzle #${day} needs a win in ${par}. Small small — try again.</p>
         <div class="actions">
           <button class="sketch-btn big" data-act="retry">Try again</button>
-          <button class="sketch-btn" data-act="show">Show me the first move</button>
-          <button class="sketch-btn" data-act="home">Main menu</button>
+          <div class="pair"><button class="sketch-btn" data-act="show">Show first move</button>
+          <button class="sketch-btn" data-act="home">Main menu</button></div>
         </div>`, {
       share: async () => {
         if (navigator.share) { try { await navigator.share({ text }); return; } catch { /* cancelled */ } }
@@ -957,7 +958,7 @@ $('#hint-btn').addEventListener('click', async () => {
 $('#menu-btn').addEventListener('click', () => {
   sfx.tap();
   if (G?.mode === 'online') {
-    openModal(`<h2>Paused</h2><p class="hand" style="font-size:22px">Your friend can still see the board.</p>
+    openModal(`<h2>Paused</h2><p class="hand">Your friend can still see the board.</p>
       <div class="actions">
         <button class="sketch-btn big" data-act="close">Back to the game</button>
         <button class="sketch-btn" data-act="resign"${G.over ? ' disabled' : ''}>Resign this game</button>
@@ -968,7 +969,7 @@ $('#menu-btn').addEventListener('click', () => {
     });
     return;
   }
-  openModal(`<h2>Paused</h2><p class="hand" style="font-size:22px">Take a breather, chale.</p>
+  openModal(`<h2>Paused</h2><p class="hand">Take a breather, chale.</p>
     <div class="actions">
       <button class="sketch-btn big" data-act="close">Back to the game</button>
       <button class="sketch-btn" data-act="restart">Restart this match</button>
@@ -1051,9 +1052,9 @@ function endGame(result) {
     openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>${notes}
       <div class="actions">
         <button class="sketch-btn big" data-act="rematch">Rematch</button>
+        <div class="pair"><button class="sketch-btn" data-act="teams">Change crews</button>
+        <button class="sketch-btn" data-act="home">Main menu</button></div>
         ${clip}
-        <button class="sketch-btn" data-act="teams">Change crews</button>
-        <button class="sketch-btn" data-act="home">Main menu</button>
       </div>
       <div class="ad-slot" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>`, {
       rematch: () => { closeModal(); newGame({ ...G.config, firstTurn: -G.config.firstTurn }); },
@@ -1078,11 +1079,11 @@ function award(reason) {
 // ----- replay clip -----
 
 const canRecord = () => typeof MediaRecorder !== 'undefined' && !!HTMLCanvasElement.prototype.captureStream;
-const clipButton = () => (canRecord() && G?.timeline.length ? '<button class="sketch-btn" data-act="clip">🎬 Make a replay clip</button>' : '');
+const clipButton = () => (canRecord() && G?.timeline.length ? '<button class="sketch-btn" data-act="clip">🎬 Replay clip</button>' : '');
 async function makeClip() {
   const timeline = G.timeline.slice(-12);
   const finalSnap = snapshot();
-  openModal('<h2>Recording…</h2><p class="hand" style="font-size:24px">Drawing your last moves into a little video.</p><canvas id="clip-canvas" class="clip-canvas"></canvas>', {}, false);
+  openModal('<h2>Recording…</h2><p class="hand">Drawing your last moves into a little video.</p><canvas id="clip-canvas" class="clip-canvas"></canvas>', {}, false, { closable: false });
   try {
     const m = await import('./replay.js');
     const { blob, ext } = await m.recordClip({
@@ -1112,9 +1113,12 @@ async function makeClip() {
 // ---------- modal ----------
 
 let modalActions = {};
-function openModal(html, actions = {}, dismissable = true) {
+// Every sheet gets a ✕ in the corner (actions.x overrides what it does), except busy
+// ones opened with { closable: false }.
+function openModal(html, actions = {}, dismissable = true, { closable = true } = {}) {
   modalActions = actions;
-  $('#sheet').innerHTML = html;
+  $('#sheet').innerHTML = (closable ? '<button class="sheet-x" data-act="x" aria-label="Close">✕</button>' : '') + html;
+  $('#sheet').scrollTop = 0;
   $('#modal').hidden = false;
   $('#modal').dataset.dismissable = dismissable ? '1' : '';
 }
@@ -1123,7 +1127,8 @@ $('#modal').addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]');
   if (b) {
     sfx.tap();
-    if (b.dataset.act === 'close') closeModal();
+    if (b.dataset.act === 'x' && !modalActions.x) closeModal();
+    else if (b.dataset.act === 'close') closeModal();
     else modalActions[b.dataset.act]?.();
     return;
   }

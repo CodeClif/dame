@@ -167,8 +167,8 @@ function showInvite() {
     <p>Send the invite to a friend. When they open it, the match starts.</p>
     <div class="actions">
       <button class="sketch-btn big" data-act="share">Share invite</button>
-      <button class="sketch-btn" data-act="copy">Copy link</button>
-      <button class="sketch-btn" data-act="cancel">Cancel</button>
+      <div class="pair"><button class="sketch-btn" data-act="copy">Copy link</button>
+      <button class="sketch-btn" data-act="cancel">Cancel</button></div>
     </div>
     <p class="note" id="invite-note">Waiting for your friend… The room closes after 2 hours.</p>`, {
     share: async () => {
@@ -180,6 +180,7 @@ function showInvite() {
     },
     copy: () => copyLink(inviteUrl(code)),
     cancel: () => { api.closeModal(); leave(); },
+    x: () => { api.closeModal(); leave(); },
   }, false);
 }
 
@@ -374,6 +375,7 @@ function onBroadcast(event, d) {
         <button class="sketch-btn" data-act="no">Not now</button></div>`, {
         yes: () => { S.net.send('ra', { g: S.game + 1 }); nextGame(); },
         no: () => api.closeModal(),
+        x: () => api.closeModal(),
       });
       break;
     case 'ra':
@@ -420,6 +422,7 @@ export function leave(navigate = true) {
   S = null;
   banner('');
   $('#chat').hidden = true;
+  document.body.classList.remove('chat-open');
   history.replaceState(null, '', location.pathname);
   if (navigate) api.go('home');
 }
@@ -465,10 +468,11 @@ function setupChat() {
   $('#chat-btn').addEventListener('click', () => {
     const chat = $('#chat');
     chat.hidden = !chat.hidden;
+    document.body.classList.toggle('chat-open', !chat.hidden);
     $('#chat-btn .dot').hidden = true;
     if (!chat.hidden) $('#chat-log').scrollTop = 1e6;
   });
-  $('#chat-close').addEventListener('click', () => { $('#chat').hidden = true; });
+  $('#chat-close').addEventListener('click', () => { $('#chat').hidden = true; document.body.classList.remove('chat-open'); });
   $('#chat-phrases').addEventListener('click', (e) => { const b = e.target.closest('[data-q]'); if (b) sendChat({ q: Number(b.dataset.q) }); });
   $('#chat-emoji').addEventListener('click', (e) => { const b = e.target.closest('[data-e]'); if (b) sendChat({ e: Number(b.dataset.e) }); });
   $('#chat-input').addEventListener('input', (e) => { $('#chat-count').textContent = `${[...e.target.value].length}/${MAX_CHAT}`; });

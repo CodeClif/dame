@@ -105,17 +105,14 @@
       <div class="ad-slot game-ad" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>
       <div class="ground" id="ground" aria-hidden="true"></div>
       <div class="chat" id="chat" hidden>
-        <div class="chat-head"><b class="hand">Chat</b>
-          <button class="chip" id="chat-mute" aria-pressed="false">Mute</button>
-          <button class="icon-btn" id="chat-close" aria-label="Close chat">✕</button></div>
         <div class="chat-log" id="chat-log" aria-live="polite"></div>
-        <div class="chips" id="chat-phrases"></div>
-        <div class="chips emoji" id="chat-emoji"></div>
+        <div class="chat-row"><div class="chips" id="chat-phrases"></div><div class="chips emoji" id="chat-emoji"></div></div>
         <form class="chat-form" id="chat-form" autocomplete="off">
-          <input id="chat-input" maxlength="80" placeholder="Say something nice…" enterkeyhint="send">
+          <span class="chat-in"><input id="chat-input" maxlength="80" placeholder="Say something nice…" enterkeyhint="send" aria-label="Message"><small class="chat-count" id="chat-count">0/80</small></span>
           <button class="sketch-btn" type="submit">Send</button>
+          <button class="chip" type="button" id="chat-mute" aria-pressed="false">Mute</button>
+          <button class="icon-btn" type="button" id="chat-close" aria-label="Close chat">✕</button>
         </form>
-        <small class="chat-count" id="chat-count">0/80</small>
       </div>
       <footer class="controls">
         <button class="ctrl" id="menu-btn"><span class="ic" data-icon="menu"></span><span>Menu</span></button>

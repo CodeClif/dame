@@ -331,8 +331,8 @@ const RIGS = {
 export const RIGGED = Object.keys(RIGS);
 export const hasRig = (key) => key in RIGS;
 
-/** The character's drawing wrapped in its moving parts (rig > gait > turn > parts). */
-export const rigMarkup = (key) => `<g class="p-rig"><g class="p-gait"><g class="p-turn">${RIGS[key].draw()}</g></g></g>`;
+/** The character's drawing wrapped in its moving parts (rig > gait > turn > parts); the crown rides along. */
+export const rigMarkup = (key) => `<g class="p-rig"><g class="p-gait"><g class="p-turn">${RIGS[key].draw()}<!--crown--></g></g></g>`;
 
 /**
  * Act out a move. `el` is the piece (positioned on its square with --r/--c), `from`/`to` are

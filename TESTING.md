@@ -23,6 +23,12 @@ Tick each line; if one fails, note what you saw and the time.
 - [ ] Try the spider (web lifts the piece away), the tro-tro driver ("POM POM!") and, once unlocked, the elephant (the board shakes).
 - [ ] **Settings → Signature moves** off: captures go back to the simple spin-away.
 
+## Characters come alive
+- [ ] Open https://codeclif.github.io/dame/lab.html and tap **Move** and **Capture** for each of the four characters; try **Slow-mo** and **Simple**.
+- [ ] In a game, play the crocodile or parrot (Forest Friends starters) and capture: the crocodile crawls and bites, the parrot flies and dives.
+- [ ] Unlock the waakye seller or elephant later and check they walk / stomp in a game.
+- [ ] Waiting pieces now and then tilt their heads, yawn or flap their ears.
+
 ## Install
 - [ ] Safari → Share → **Add to Home Screen**. The tortoise icon appears; open Dame from it (no Safari bars).
 - [ ] Turn on Airplane mode and open Dame from the Home Screen: it still loads and you can play the computer.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.8.0 — Characters come alive (first four)
+
+- Akua the parrot, Kwabena the crocodile, Auntie Akosua (waakye seller) and Nana Kwasi the elephant now have moving parts in the game:
+  - the parrot opens her wings and flies, leaving her ring on the ground like a shadow, and dives at pieces she captures;
+  - the crocodile turns to face the way he's going, crawls with paddling legs and a swishing tail, and bites captured pieces with his own jaws (CHOMP!);
+  - the waakye seller stands up and walks with her bowl wobbling and steam rising, and splashes shito on captured pieces;
+  - the elephant plods on stumpy legs with flapping ears, rears up (TOOT!) and stomps captured pieces.
+- At rest they look exactly as before, still blinking and bobbing, with an occasional fidget (head tilt, yawn, ear flap). Crowns ride along on kings.
+- The setting is now called **Character animations**. It only changes your own screen; your opponent sees whatever they chose.
+- `lab.html`: a sample page for trying the motions with Move / Capture buttons, Full / Simple and slow motion.
+
 ## 1.7.0 — Signature moves
 
 - Every character now travels its own way: the crocodile slithers, birds fly, the tortoise and pangolin roll, the antelope leaps, the spider scuttles, the bush cat pounces, the tro-tro and river hog charge, the mona monkey swings, the elephant stomps (and the board shakes).

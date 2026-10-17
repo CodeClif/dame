@@ -534,7 +534,7 @@ export function characterSVG(key, { withBase = true, drawing = null } = {}) {
        ${inner}
        <path class="king-ring" d="M10 91C12 78 89 77 91 90C92 104 9 105 11 89" fill="none" stroke="#e0a800" stroke-width="2.4" stroke-dasharray="5 4" stroke-linecap="round"/>`
     : '';
-  return `<svg viewBox="0 -14 100 114" aria-hidden="true">${base}<g class="bob">${drawing ?? ch.draw()}${crown(ch.crownY, ch.crownX)}</g></svg>`;
+  return `<svg viewBox="0 -14 100 114" aria-hidden="true">${base}<g class="bob">${drawing ? drawing.replace('<!--crown-->', crown(ch.crownY, ch.crownX)) : ch.draw() + crown(ch.crownY, ch.crownX)}</g></svg>`;
 }
 
 /** Shared pattern definitions referenced by every piece (kente cloth). */

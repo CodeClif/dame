@@ -5,6 +5,7 @@ import { sfx, setSoundEnabled } from './sound.js';
 import { chooseMove } from './ai.js';
 import { encodeMove, decodeMove } from './protocol.js';
 import { skillOf, travelFrames, strike } from './moves.js';
+import { hasRig, rigMarkup, act, fidget } from './rigs.js';
 import { onlineConfigured } from './config.js';
 import { emptyProgress, isUnlocked, recordGame, recordPuzzleProgress } from './progress.js';
 import { getNick, getGroup } from './profile.js';
@@ -433,7 +434,8 @@ function renderPieces(intro = false) {
     const info = G.pieces.get(id);
     const el = document.createElement('div');
     el.className = `piece char${info.king ? ' king' : ''}`;
-    el.innerHTML = `<div class="hopper">${characterSVG(info.char)}</div>`;
+    el.innerHTML = `<div class="hopper">${characterSVG(info.char, hasRig(info.char) ? { drawing: rigMarkup(info.char) } : {})}</div>`;
+    el.dataset.char = info.char;
     el.style.setProperty('--delay', `${(-Math.random() * 2.6).toFixed(2)}s`);
     el.style.setProperty('--blink', `${(-Math.random() * 4.6).toFixed(2)}s`);
     place(el, s);
@@ -934,7 +936,30 @@ async function performMove(move, remote = false) {
   const el = info.el;
   const side = info.side;
   el.style.zIndex = 50;
+  const acted = showSkills() && hasRig(info.char);
   for (let i = 0; i < move.path.length - 1; i++) {
+    if (acted) {
+      // Characters with moving parts act the whole leg out themselves (fly, crawl, walk, stomp…).
+      const [a, b] = [move.path[i], move.path[i + 1]];
+      const cap = move.captures[i];
+      const target = cap != null ? G.pieces.get(G.ids[cap]) : null;
+      if (target) { G.captured[side].push(target.char); renderTray(side); }
+      if (target?.el) { target.el.classList.add('shocked'); target.el.style.zIndex = 40; }
+      if (cap != null && !G.skillsShown.has(info.char)) {
+        G.skillsShown.add(info.char);
+        say(`${CHARACTERS[info.char]?.name || 'Ei'}’s ${skillOf(info.char).name}!`);
+      }
+      sfx.hop();
+      if (cap != null) setTimeout(() => sfx.capture(), 600);
+      await act(info.char, el, [vRow(a), vCol(a)], [vRow(b), vCol(b)],
+        target?.el ? { el: target.el, r: vRow(cap), c: vCol(cap) } : null,
+        { fx: $('#fx'), board: $('.board-frame') });
+      place(el, b);
+      if (G.token !== token) return;
+      sfx.land();
+      if (cap != null) el.classList.add('cheer');
+      continue;
+    }
     sfx.hop();
     await hop(el, move.path[i], move.path[i + 1], info.char);
     if (G.token !== token) return;
@@ -1373,6 +1398,14 @@ $$('[data-setting]').forEach((input) => input.addEventListener('change', () => {
   saveSettings();
   sfx.tap();
 }));
+
+// Now and then a waiting character fidgets: a head tilt, a yawn, an ear flap…
+setInterval(() => {
+  if (!G || G.busy || currentScreen !== 'game' || document.hidden || !showSkills()) return;
+  const idle = [...piecesEl.querySelectorAll('.piece')].filter((e) => hasRig(e.dataset.char));
+  const e = idle[Math.floor(Math.random() * idle.length)];
+  if (e) fidget(e.dataset.char, e);
+}, 2200);
 
 // ---------- online play (loaded only when needed) ----------
 

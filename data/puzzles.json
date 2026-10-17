@@ -1,0 +1,635 @@
+{
+ "version": 1,
+ "puzzles": [
+  {
+   "id": 1,
+   "title": "Clean sweep",
+   "rows": [
+    "........",
+    "........",
+    "........",
+    "o.......",
+    ".....x..",
+    "........",
+    ".o......",
+    "X.....x."
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 2,
+   "title": "Chale, finish am",
+   "rows": [
+    "........",
+    "....o...",
+    "........",
+    "x.......",
+    "...x....",
+    "x.......",
+    "........",
+    "....x..."
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 3,
+   "title": "Sankofa strike",
+   "rows": [
+    ".......o",
+    "....O...",
+    ".....x..",
+    "........",
+    "........",
+    "........",
+    ".....o..",
+    "....X..."
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 4,
+   "title": "Market rush",
+   "rows": [
+    "........",
+    "......x.",
+    ".....O..",
+    "........",
+    "...X....",
+    "..x.o...",
+    ".......x",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 5,
+   "title": "Double wahala",
+   "rows": [
+    "........",
+    "X...x...",
+    ".O......",
+    "........",
+    ".o......",
+    "........",
+    ".O......",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 1,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 6,
+   "title": "Small small",
+   "rows": [
+    "...o....",
+    "........",
+    "........",
+    "........",
+    "...o...x",
+    "........",
+    ".....X..",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 7,
+   "title": "Last stand",
+   "rows": [
+    "........",
+    "....x...",
+    ".X...x..",
+    "o.......",
+    "........",
+    "......x.",
+    "........",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "classic",
+   "options": {
+    "flyingKings": false,
+    "menCaptureBackward": false
+   }
+  },
+  {
+   "id": 8,
+   "title": "Corner trap",
+   "rows": [
+    "........",
+    "........",
+    "........",
+    "........",
+    ".X......",
+    "....x.o.",
+    ".......o",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 9,
+   "title": "The long road",
+   "rows": [
+    "........",
+    "......o.",
+    "........",
+    "........",
+    "........",
+    "........",
+    "...x.o..",
+    "......X."
+   ],
+   "turn": 1,
+   "moves": 1,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 10,
+   "title": "Akwaaba to the end",
+   "rows": [
+    ".....O..",
+    "....x...",
+    "........",
+    "........",
+    ".....x..",
+    "......x.",
+    "........",
+    "......x."
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "classic",
+   "options": {
+    "flyingKings": false,
+    "menCaptureBackward": false
+   }
+  },
+  {
+   "id": 11,
+   "title": "Royal visit",
+   "rows": [
+    ".o......",
+    "........",
+    ".X...X..",
+    "x.......",
+    "........",
+    "........",
+    "........",
+    "x......."
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 12,
+   "title": "No escape",
+   "rows": [
+    "........",
+    "..X.....",
+    "........",
+    "........",
+    ".....X..",
+    "........",
+    "...x...o",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 13,
+   "title": "Ei! one shot",
+   "rows": [
+    "........",
+    "....X.o.",
+    ".....o.X",
+    "........",
+    "........",
+    "..x.O.x.",
+    "........",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 14,
+   "title": "Patience pays",
+   "rows": [
+    "........",
+    "........",
+    "...x....",
+    "........",
+    ".X.....o",
+    "X.......",
+    "........",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 15,
+   "title": "Under the mango tree",
+   "rows": [
+    "........",
+    "........",
+    ".......o",
+    "........",
+    "........",
+    "X.......",
+    "...x...x",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 16,
+   "title": "Tro-tro express",
+   "rows": [
+    "........",
+    "..o...X.",
+    "........",
+    "....x.O.",
+    "........",
+    "........",
+    "........",
+    "X......."
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 17,
+   "title": "Kente knot",
+   "rows": [
+    "........",
+    "........",
+    ".....O..",
+    "........",
+    "...X....",
+    "........",
+    ".o......",
+    "..x...x."
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 18,
+   "title": "Harmattan haze",
+   "rows": [
+    "...o....",
+    "........",
+    "........",
+    "......x.",
+    "...o....",
+    "........",
+    "...o.x..",
+    "X.x....."
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 19,
+   "title": "Drum roll",
+   "rows": [
+    "........",
+    "......o.",
+    ".X......",
+    "x.o.....",
+    ".......o",
+    "........",
+    ".x......",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 20,
+   "title": "Fisherman’s net",
+   "rows": [
+    "........",
+    "........",
+    ".......x",
+    "......o.",
+    "...X.x..",
+    "........",
+    "........",
+    "......x."
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "classic",
+   "options": {
+    "flyingKings": false,
+    "menCaptureBackward": false
+   }
+  },
+  {
+   "id": 21,
+   "title": "Clean sweep",
+   "rows": [
+    "........",
+    "........",
+    ".......o",
+    "........",
+    ".....x..",
+    "........",
+    ".x......",
+    "x......."
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 22,
+   "title": "Chale, finish am",
+   "rows": [
+    "........",
+    "........",
+    "...o.x..",
+    "X.......",
+    "........",
+    "........",
+    ".x......",
+    "....x..."
+   ],
+   "turn": 1,
+   "moves": 3,
+   "rules": "classic",
+   "options": {
+    "flyingKings": false,
+    "menCaptureBackward": false
+   }
+  },
+  {
+   "id": 23,
+   "title": "Sankofa strike",
+   "rows": [
+    "........",
+    "o.......",
+    "........",
+    "....x...",
+    "........",
+    "........",
+    ".X.....X",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 24,
+   "title": "Market rush",
+   "rows": [
+    "........",
+    "........",
+    "........",
+    "x.......",
+    ".......O",
+    "X...X...",
+    "........",
+    "x......."
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "classic",
+   "options": {
+    "flyingKings": false,
+    "menCaptureBackward": false
+   }
+  },
+  {
+   "id": 25,
+   "title": "Double wahala",
+   "rows": [
+    "........",
+    "........",
+    "........",
+    "......o.",
+    ".O.X....",
+    "X.......",
+    "........",
+    "......X."
+   ],
+   "turn": 1,
+   "moves": 1,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 26,
+   "title": "Small small",
+   "rows": [
+    ".....o..",
+    "........",
+    ".....x.x",
+    "........",
+    "...x....",
+    "........",
+    "........",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 27,
+   "title": "Last stand",
+   "rows": [
+    "........",
+    "........",
+    ".....o..",
+    "........",
+    ".X...o..",
+    "........",
+    ".....o.X",
+    "......x."
+   ],
+   "turn": 1,
+   "moves": 1,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 28,
+   "title": "Corner trap",
+   "rows": [
+    "...o....",
+    "........",
+    "........",
+    "........",
+    ".o......",
+    "X.......",
+    "........",
+    "..X...x."
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 29,
+   "title": "The long road",
+   "rows": [
+    ".o......",
+    "x.......",
+    "........",
+    "........",
+    ".X......",
+    "..x.....",
+    ".......x",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 2,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  },
+  {
+   "id": 30,
+   "title": "Akwaaba to the end",
+   "rows": [
+    "........",
+    "......X.",
+    ".....o..",
+    "........",
+    ".o......",
+    "........",
+    ".....X..",
+    "........"
+   ],
+   "turn": 1,
+   "moves": 1,
+   "rules": "flying",
+   "options": {
+    "flyingKings": true,
+    "menCaptureBackward": true
+   }
+  }
+ ]
+}

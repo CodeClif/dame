@@ -1,10 +1,13 @@
 import * as R from './rules.js';
-import { CHARACTERS, TEAMS, TEAM_ROSTER, characterSVG, DEFS_SVG } from './characters.js';
+import { CHARACTERS, TEAMS, TEAM_ROSTER, BASE_ROSTER, characterSVG, DEFS_SVG } from './characters.js';
 import { boardSVG, titleSVG, doodle, packIcon, icon, wobblyCircle, seeded } from './sketch.js';
 import { sfx, setSoundEnabled } from './sound.js';
 import { chooseMove } from './ai.js';
 import { encodeMove, decodeMove } from './protocol.js';
 import { onlineConfigured } from './config.js';
+import { emptyProgress, isUnlocked, recordGame, recordPuzzleProgress } from './progress.js';
+import { getNick, getGroup } from './profile.js';
+import { puzzleState, bestDefence, dayNumber, puzzleForDay, recordSolve, currentStreak, shareText, winningMove } from './puzzles.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -23,6 +26,7 @@ const settings = {
   level: 'medium',
   team: 'forest',
   theme: 'pencil',
+  speed: false, // speed mode: 10 seconds a turn
   night: null, // null follows the phone's light/dark setting
   lineups: { forest: [...TEAM_ROSTER.forest], market: [...TEAM_ROSTER.market] },
 };
@@ -30,9 +34,16 @@ try {
   const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
   Object.assign(settings, saved, { lineups: { ...settings.lineups, ...(saved.lineups || {}) } });
 } catch { /* private mode: defaults are fine */ }
+// ---------- progress: streaks and unlocked characters ----------
+
+const PROGRESS_KEY = 'dame.progress.v1';
+let progress = emptyProgress();
+try { progress = { ...progress, ...JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}') }; } catch { /* defaults */ }
+function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch { /* ignore */ } }
+
 for (const t of ['forest', 'market']) {
-  settings.lineups[t] = settings.lineups[t].filter((k) => CHARACTERS[k]?.team === t);
-  if (!settings.lineups[t].length) settings.lineups[t] = [...TEAM_ROSTER[t]];
+  settings.lineups[t] = settings.lineups[t].filter((k) => CHARACTERS[k]?.team === t && isUnlocked(k, progress));
+  if (!settings.lineups[t].length) settings.lineups[t] = [...BASE_ROSTER[t]];
 }
 function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* ignore */ }
@@ -97,7 +108,7 @@ function go(id) {
   if (id === 'shop') renderShop();
   if (id === 'settings') renderSettings();
   if (id === 'home' && currentScreen !== 'home') document.body.classList.add('skip-intro');
-  if (id !== 'game' && G) G.token = Symbol('left'); // stop any pending computer move
+  if (id !== 'game' && G) { G.token = Symbol('left'); clearInterval(G.clockTimer); } // stop pending moves and clocks
   currentScreen = id;
   document.body.dataset.screen = id;
   $$('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
@@ -190,12 +201,20 @@ function renderSetup() {
   $$('#team-seg button').forEach((b) => b.classList.toggle('on', b.dataset.team === settings.team));
   renderLineup($('#lineup1'), settings.team);
   if (!cpu) renderLineup($('#lineup2'), otherTeam(settings.team));
+  $('#speed-toggle').checked = settings.speed;
 }
+$('#speed-toggle').addEventListener('change', (e) => { settings.speed = e.target.checked; saveSettings(); sfx.tap(); });
 
 function renderLineup(el, team) {
   const chosen = settings.lineups[team];
   el.innerHTML = TEAM_ROSTER[team].map((k) => {
     const ch = CHARACTERS[k];
+    if (!isUnlocked(k, progress)) {
+      const why = ch.seasonal ? `Coming: ${ch.seasonal}` : ch.unlock.text;
+      return `<button class="card off sealed" data-char="${k}" data-why="${why}" aria-disabled="true">
+        <span class="pic char">${characterSVG(k, { withBase: false })}</span>
+        <span class="nm">${ch.name}</span><span class="kd">🔒 ${why}</span></button>`;
+    }
     const on = chosen.includes(k);
     const locked = on && chosen.length === 1; // the last one can't be removed
     return `<button class="card ${on ? 'on' : 'off'}${locked ? ' locked' : ''}" data-char="${k}" aria-pressed="${on}"${locked ? ' aria-disabled="true"' : ''}>
@@ -225,6 +244,11 @@ for (const id of ['#lineup1', '#lineup2']) {
   $(id).addEventListener('click', (e) => {
     const card = e.target.closest('.card');
     if (!card) return;
+    if (card.classList.contains('sealed')) {
+      sfx.error();
+      card.animate([{ transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], 240);
+      return;
+    }
     const team = e.currentTarget.dataset.team;
     const list = settings.lineups[team];
     const k = card.dataset.char;
@@ -249,9 +273,10 @@ $('#start-btn').addEventListener('click', () => {
     teams: { 1: bottom, [-1]: otherTeam(bottom) },
     lineups: {
       1: [...settings.lineups[bottom]],
-      [-1]: setup.mode === 'cpu' ? [...TEAM_ROSTER[otherTeam(bottom)]] : [...settings.lineups[otherTeam(bottom)]],
+      [-1]: setup.mode === 'cpu' ? [...BASE_ROSTER[otherTeam(bottom)]] : [...settings.lineups[otherTeam(bottom)]],
     },
     firstTurn: 1,
+    turnSeconds: settings.speed ? 10 : 0,
   });
 });
 
@@ -272,11 +297,14 @@ function newGame(config) {
     human: config.mode === 'online'
       ? { [config.localSide]: true, [-config.localSide]: false }
       : { 1: true, [-1]: config.mode === 'pnp' },
+    turnSeconds: config.turnSeconds || 0,
+    puzzle: config.puzzle ? { ...config.puzzle, used: 0 } : null,
+    timeline: [], // { snap, move } for the replay clip
     localSide: config.localSide || 1,
     flip: config.mode === 'online' && config.localSide === -1,
     online: config.online || null, // the online controller, when playing a friend
     log: [], // encoded moves, in order
-    state: R.createInitialState(config.firstTurn),
+    state: config.startRows ? R.stateFromRows(config.startRows, config.firstTurn ?? 1) : R.createInitialState(config.firstTurn),
     ids: new Array(64).fill(null),
     pieces: new Map(),
     history: [],
@@ -288,9 +316,10 @@ function newGame(config) {
     lastMove: null,
     token: Symbol('game'),
   };
+  if (G?.clockTimer) clearInterval(G.clockTimer);
   // Hand out characters, back row first, cycling through each line-up.
   for (const side of [1, -1]) {
-    const rows = side === 1 ? [7, 6, 5] : [0, 1, 2];
+    const rows = side === 1 ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
     const chars = config.lineups[side];
     let k = 0;
     for (const r of rows) {
@@ -298,7 +327,7 @@ function newGame(config) {
         const s = R.sq(r, c);
         if (R.sideOf(G.state.board[s]) !== side) continue;
         const id = `${side}:${k}`;
-        G.pieces.set(id, { side, char: chars[k % chars.length], king: false });
+        G.pieces.set(id, { side, char: chars[k % chars.length], king: R.isKing(G.state.board[s]) });
         G.ids[s] = id;
         k++;
       }
@@ -328,7 +357,8 @@ function newGame(config) {
   const token = G.token;
   setTimeout(() => {
     if (G.token !== token) return;
-    if (!G.log.length) say('start');
+    if (G.puzzle) say(`win in ${G.puzzle.par}!`, true);
+    else if (!G.log.length) say('start');
     G.busy = false;
     startTurn();
     drainRemote();
@@ -392,6 +422,7 @@ function renderPieces(intro = false) {
 
 function sideLabel(side) {
   if (G.mode === 'cpu') return side === 1 ? 'You' : 'Computer';
+  if (G.mode === 'puzzle') return side === 1 ? 'You' : `Puzzle #${G.puzzle.day}`;
   if (G.mode === 'online') return side === G.localSide ? 'You' : (G.config.names?.[side] || 'Friend');
   return side === 1 ? 'Player 1' : 'Player 2';
 }
@@ -400,7 +431,8 @@ function renderBars() {
   for (const side of [1, -1]) {
     const bar = barFor(side);
     const team = TEAMS[G.teams[side]];
-    const sub = G.mode === 'cpu' && side === -1 ? `${team.short} · ${G.level}` : G.mode === 'online' ? team.short : team.name;
+    let sub = G.mode === 'cpu' && side === -1 ? `${team.short} · ${G.level}` : G.mode === 'online' ? team.short : team.name;
+    if (G.mode === 'puzzle') sub = side === 1 ? `win in ${G.puzzle.par}` : G.puzzle.title;
     bar.innerHTML = `<span class="avatar char">${characterSVG(G.config.lineups[side][0])}</span>
       <span class="who">${sideLabel(side)}</span>
       <span class="status"><span class="sub">${sub}</span><span class="thinking hand">thinking…</span></span>
@@ -440,8 +472,156 @@ function startTurn() {
   G.selected = null;
   updateBars();
   drawOverlay();
-  G.online?.turnStarted(G.state.turn);
+  startClock();
+  if (G.mode === 'puzzle') {
+    if (G.state.turn === 1 && G.puzzle.used >= G.puzzle.par) { puzzleOver(false); return; }
+    if (G.state.turn === -1) puzzleReply();
+    return;
+  }
   if (!G.human[G.state.turn] && G.mode === 'cpu') cpuTurn();
+}
+
+// ----- turn clock (speed mode, online timer) -----
+
+function startClock() {
+  clearInterval(G.clockTimer);
+  api.setClock(1, '');
+  api.setClock(-1, '');
+  if (G.puzzle) { api.setClock(1, `move ${Math.min(G.puzzle.used + 1, G.puzzle.par)}/${G.puzzle.par}`); return; }
+  const secs = G.turnSeconds;
+  const turn = G.state.turn;
+  if (!secs || G.over || (!G.human[turn] && G.mode !== 'online')) return; // the computer is quick enough
+  const deadline = Date.now() + secs * 1000;
+  let played = false;
+  let claimed = false;
+  const tick = () => {
+    if (!G || G.over || G.state.turn !== turn) { clearInterval(G?.clockTimer); return; }
+    const left = Math.ceil((deadline - Date.now()) / 1000);
+    const l = Math.max(0, left);
+    api.setClock(turn, `${Math.floor(l / 60)}:${String(l % 60).padStart(2, '0')}`, l <= (secs > 10 ? 5 : 3));
+    if (left <= 0 && G.human[turn] && !played && !G.busy) {
+      played = true;
+      say('too slow — random move!', true);
+      api.autoMove();
+    }
+    if (left <= -20 && !G.human[turn] && !claimed) { claimed = true; G.online?.remoteTimedOut(); }
+  };
+  tick();
+  G.clockTimer = setInterval(tick, 250);
+}
+
+// ----- daily puzzle -----
+
+let puzzleData = null;
+async function loadPuzzles() {
+  puzzleData ||= fetch('data/puzzles.json').then((r) => r.json()).then((d) => d.puzzles);
+  return puzzleData;
+}
+const PUZZLE_KEY = 'dame.puzzle.v1';
+const puzzleRecord = () => { try { return JSON.parse(localStorage.getItem(PUZZLE_KEY) || 'null'); } catch { return null; } };
+
+async function openPuzzle() {
+  let list;
+  try { list = await loadPuzzles(); } catch { openModal('<h2>No puzzle yet</h2><p>Connect once to download the puzzles, then they work offline.</p><div class="actions"><button class="sketch-btn big" data-act="close">OK</button></div>'); return; }
+  const day = dayNumber();
+  const p = puzzleForDay(list, day);
+  const bottom = settings.team;
+  newGame({
+    mode: 'puzzle',
+    puzzle: { id: p.id, day, par: p.moves, title: p.title },
+    startRows: p.rows,
+    firstTurn: p.turn ?? 1,
+    opts: p.options,
+    teams: { 1: bottom, [-1]: otherTeam(bottom) },
+    lineups: { 1: [...settings.lineups[bottom]], [-1]: [...BASE_ROSTER[otherTeam(bottom)]] },
+  });
+}
+
+function refreshPuzzleButton() {
+  const rec = puzzleRecord();
+  const streak = currentStreak(rec, dayNumber());
+  $('#puzzle-btn').innerHTML = `Daily puzzle${rec?.solved?.[dayNumber()] ? ' ✓' : ''}${streak ? ` <small>🔥${streak}</small>` : ''}`;
+}
+
+function puzzleReply() {
+  const token = G.token;
+  G.busy = true;
+  updateBars(true);
+  setTimeout(() => {
+    if (G.token !== token) return;
+    updateBars(false);
+    const m = bestDefence(G.state, G.puzzle.par - G.puzzle.used, G.opts);
+    if (m) performMove(m, true);
+  }, 650);
+}
+
+function puzzleOver(won) {
+  if (G.over) return;
+  G.over = true;
+  G.busy = false;
+  clearInterval(G.clockTimer);
+  updateBars();
+  drawOverlay();
+  const { day, par, used, id } = G.puzzle;
+  const today = day === dayNumber();
+  let notes = '';
+  let streak = currentStreak(puzzleRecord(), dayNumber());
+  if (won) {
+    sfx.win();
+    say('Ayekoo!', true);
+    for (const p of G.pieces.values()) if (p.side === 1) p.el?.classList.add('dance');
+    const before = puzzleRecord();
+    if (today && !before?.solved?.[day]) {
+      const rec = recordSolve(before, day, used);
+      try { localStorage.setItem(PUZZLE_KEY, JSON.stringify(rec)); } catch { /* ignore */ }
+      streak = rec.streak;
+      const r = recordPuzzleProgress(progress, rec);
+      progress = r.progress;
+      saveProgress();
+      notes = unlockNotes(r.unlocked);
+      award('puzzle');
+      refreshPuzzleButton();
+    } else if (before?.solved?.[day]) {
+      notes = '<p class="note">Already counted today — this one was practice.</p>';
+    }
+  } else {
+    sfx.lose();
+  }
+  const text = shareText({ day, movesUsed: used, par, streak, url: location.origin + location.pathname });
+  const clip = clipButton();
+  setTimeout(() => {
+    openModal(won
+      ? `<h2>Solved! 🧩</h2><p>Puzzle #${day} · ${used}/${par} move${par > 1 ? 's' : ''}<br><b>🔥 ${streak}-day streak</b></p>${notes}
+        <div class="actions">
+          <button class="sketch-btn big" data-act="share">Share result</button>
+          <a class="sketch-btn wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">Send on WhatsApp</a>
+          ${clip}
+          <button class="sketch-btn" data-act="home">Main menu</button>
+        </div>
+        <p class="note">A new puzzle every day at midnight (GMT).</p>`
+      : `<h2>Not quite!</h2><p>Puzzle #${day} needs a win in ${par}. Small small — try again.</p>
+        <div class="actions">
+          <button class="sketch-btn big" data-act="retry">Try again</button>
+          <button class="sketch-btn" data-act="show">Show me the first move</button>
+          <button class="sketch-btn" data-act="home">Main menu</button>
+        </div>`, {
+      share: async () => {
+        if (navigator.share) { try { await navigator.share({ text }); return; } catch { /* cancelled */ } }
+        try { await navigator.clipboard.writeText(text); $('#sheet .note').textContent = 'Result copied — paste it anywhere.'; } catch { /* ignore */ }
+      },
+      retry: () => { closeModal(); openPuzzle(); },
+      show: async () => {
+        closeModal();
+        await openPuzzle();
+        const list = await loadPuzzles();
+        const p = list.find((x) => x.id === id);
+        const m = winningMove(puzzleState(p), p.moves, p.options);
+        setTimeout(() => { if (G?.puzzle && m) { G.selected = m.from; drawOverlay(m); say('psst… start here', true); } }, 2200);
+      },
+      clip: () => makeClip(),
+      home: () => { closeModal(); go('home'); },
+    }, false);
+  }, won ? 1100 : 500);
 }
 
 // ----- moves from the other player (online) -----
@@ -680,7 +860,10 @@ async function performMove(move, remote = false) {
   G.busy = true;
   G.selected = null;
   drawOverlay();
-  G.history.push(snapshot());
+  const snap = snapshot();
+  G.history.push(snap);
+  G.timeline.push({ snap, move });
+  if (G.timeline.length > 40) G.timeline.shift();
   const id = G.ids[move.from];
   const info = G.pieces.get(id);
   const el = info.el;
@@ -707,6 +890,7 @@ async function performMove(move, remote = false) {
   G.lastMove = move;
   G.log.push(encodeMove(move));
   if (G.mode === 'online' && !remote) G.online?.localMove(G.log[G.log.length - 1], G.log.length - 1);
+  if (G.puzzle && side === 1) G.puzzle.used++;
   el.style.zIndex = '';
   drawTrail();
 
@@ -757,7 +941,7 @@ $('#undo-btn').addEventListener('click', () => {
 });
 
 $('#hint-btn').addEventListener('click', async () => {
-  if (!G || G.busy || G.over || !G.human[G.state.turn]) return;
+  if (!G || G.busy || G.over || !G.human[G.state.turn] || G.puzzle) return;
   sfx.tap();
   const token = G.token;
   G.busy = true;
@@ -801,6 +985,8 @@ $('#menu-btn').addEventListener('click', () => {
 
 function endGame(result) {
   if (G.over) return;
+  if (G.mode === 'puzzle') { puzzleOver(result.winner === 1); return; }
+  clearInterval(G.clockTimer);
   G.over = true;
   G.busy = false;
   updateBars();
@@ -808,6 +994,17 @@ function endGame(result) {
   G.online?.gameEnded(result);
   const { winner, reason } = result;
   const humanWon = G.mode === 'pnp' || G.human[winner];
+  // Streaks, unlocks and leaderboard points (cosmetic only; no stakes, no prizes).
+  let notes = '';
+  if (G.mode === 'cpu' || G.mode === 'online') {
+    const r = recordGame(progress, winner ? !!G.human[winner] : null);
+    progress = r.progress;
+    saveProgress();
+    notes = unlockNotes(r.unlocked);
+    if (G.mode === 'cpu' && winner === 1) award(`cpu-${G.level}`);
+    if (G.mode === 'online') award(winner === G.localSide ? 'online-win' : 'online-play');
+  }
+  const clip = clipButton();
   if (winner) {
     for (const p of G.pieces.values()) if (p.side === winner) p.el?.classList.add('dance');
     (humanWon ? sfx.win : sfx.lose)();
@@ -843,25 +1040,73 @@ function endGame(result) {
       </div>`;
   setTimeout(() => {
     if (G.mode === 'online') {
-      openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>${onlineActions}
+      openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>${notes}${onlineActions.replace('</div>', `${clip}</div>`)}
         <div class="ad-slot" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>`, {
         orematch: () => { G.online?.requestRematch(); },
+        clip: () => makeClip(),
         leave: () => { closeModal(); G.online?.leave(); },
       }, false);
       return;
     }
-    openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>
+    openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>${notes}
       <div class="actions">
         <button class="sketch-btn big" data-act="rematch">Rematch</button>
+        ${clip}
         <button class="sketch-btn" data-act="teams">Change crews</button>
         <button class="sketch-btn" data-act="home">Main menu</button>
       </div>
       <div class="ad-slot" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>`, {
       rematch: () => { closeModal(); newGame({ ...G.config, firstTurn: -G.config.firstTurn }); },
+      clip: () => makeClip(),
       teams: () => { closeModal(); setup.mode = G.mode; go('setup'); },
       home: () => { closeModal(); go('home'); },
     }, false);
   }, winner ? 1300 : 600);
+}
+
+function unlockNotes(keys) {
+  return keys.map((k) => `<p class="unlock">🎉 New friend unlocked: <b>${CHARACTERS[k].name}</b> the ${CHARACTERS[k].kind}! Add them in your line-up.</p>`).join('');
+}
+
+/** Leaderboard points, sent only when the player has chosen a nickname and a group. */
+function award(reason) {
+  const points = { 'cpu-easy': 1, 'cpu-medium': 2, 'cpu-hard': 3, 'online-win': 3, 'online-play': 1, puzzle: 2 }[reason];
+  if (!onlineConfigured() || !getNick() || !getGroup() || !points || !navigator.onLine) return;
+  import('./leaderboard.js').then((m) => m.addPoints(reason, points)).catch(() => {});
+}
+
+// ----- replay clip -----
+
+const canRecord = () => typeof MediaRecorder !== 'undefined' && !!HTMLCanvasElement.prototype.captureStream;
+const clipButton = () => (canRecord() && G?.timeline.length ? '<button class="sketch-btn" data-act="clip">🎬 Make a replay clip</button>' : '');
+async function makeClip() {
+  const timeline = G.timeline.slice(-12);
+  const finalSnap = snapshot();
+  openModal('<h2>Recording…</h2><p class="hand" style="font-size:24px">Drawing your last moves into a little video.</p><canvas id="clip-canvas" class="clip-canvas"></canvas>', {}, false);
+  try {
+    const m = await import('./replay.js');
+    const { blob, ext } = await m.recordClip({
+      canvas: $('#clip-canvas'),
+      boardSvg: $('#board-art svg'),
+      timeline,
+      finalSnap,
+      flip: G.flip,
+      title: `${sideLabel(bottomSide())} vs ${sideLabel(-bottomSide())}`,
+    });
+    const url = URL.createObjectURL(blob);
+    const file = new File([blob], `dame-replay.${ext}`, { type: blob.type });
+    const canShareFile = navigator.canShare?.({ files: [file] });
+    openModal(`<h2>Your replay 🎬</h2><video class="clip-video" src="${url}" autoplay loop muted playsinline></video>
+      <div class="actions">
+        ${canShareFile ? '<button class="sketch-btn big" data-act="share">Share video</button>' : ''}
+        <a class="sketch-btn${canShareFile ? '' : ' big'}" href="${url}" download="dame-replay.${ext}">Save video</a>
+        <button class="sketch-btn" data-act="close">Close</button>
+      </div>`, {
+      share: async () => { try { await navigator.share({ files: [file], title: 'Dame replay' }); } catch { /* cancelled */ } },
+    });
+  } catch (e) {
+    openModal(`<h2>No clip this time</h2><p>This phone’s browser can’t record video (${String(e.message || e).slice(0, 60)}).</p><div class="actions"><button class="sketch-btn big" data-act="close">OK</button></div>`);
+  }
 }
 
 // ---------- modal ----------
@@ -920,6 +1165,12 @@ function renderHowto() {
       <li><b>Hint</b> suggests a move, <b>Undo</b> takes back your last move.</li>
       <li>Change flying kings and backward captures in <b>Settings</b>.</li>
     </ul>
+    <h3>Daily puzzle</h3>
+    <p>One position a day, the same for everyone. Win within the number of moves shown (the computer defends as well as it can). Solve on consecutive days to grow your 🔥 streak, then share your result.</p>
+    <h3>Speed mode</h3>
+    <p>Switch it on before a match: 10 seconds a turn. If the clock runs out, a random move is played for you.</p>
+    <h3>Unlockable friends</h3>
+    <p>Win streaks and puzzle streaks unlock extra characters for your line-up. They only change how your pieces look — every piece follows the same rules. Seasonal friends arrive later in the year.</p>
     <h3>Playing a friend online</h3>
     <ul>
       <li>Tap <b>Play a friend online</b>, pick a nickname and create a room. Share the invite link (or the 6-letter code) on WhatsApp or SMS.</li>
@@ -1045,6 +1296,11 @@ async function online() {
   onlineModule ||= import('./online.js').then((m) => { m.init(api); return m; });
   return onlineModule;
 }
+$('#puzzle-btn').addEventListener('click', () => { sfx.tap(); openPuzzle(); });
+$('#leaders-btn').addEventListener('click', async () => {
+  sfx.tap();
+  (await import('./leaderboard.js')).open(api);
+});
 $('#friend-btn').addEventListener('click', async () => {
   sfx.tap();
   (await online()).open();
@@ -1057,6 +1313,8 @@ paintIcons();
 renderDoodles();
 renderHome();
 $('#friend-btn').hidden = !onlineConfigured();
+$('#leaders-btn').hidden = !onlineConfigured();
+refreshPuzzleButton();
 // An invite link (?room=CODE) goes straight to the join screen.
 if (new URLSearchParams(location.search).has('room')) {
   document.body.classList.add('skip-intro');
@@ -1070,6 +1328,10 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 // Console helpers for debugging, e.g. dame.position(['........', ...], 1).
 window.dame = {
   get game() { return G; },
+  get progress() { return progress; },
+  openPuzzle,
+  newGame,
+  go,
   position(rows, turn = 1) {
     if (!G) return;
     G.token = Symbol('debug');

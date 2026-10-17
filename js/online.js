@@ -4,11 +4,12 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { RealtimeRoom, rpc } from './realtime.js';
 import {
-  makeRoomCode, normalizeRoomCode, roomExpired, cleanNickname, cleanChat, RateLimiter,
+  makeRoomCode, normalizeRoomCode, roomExpired, cleanChat, RateLimiter,
   QUICK_PHRASES, EMOJI, MAX_CHAT, ROOM_TTL_MS,
 } from './protocol.js';
 import { TEAM_ROSTER } from './characters.js';
 import { getLegalMoves } from './rules.js';
+import { getNick, setNick } from './profile.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -23,7 +24,7 @@ let S = null; // the current room session
 
 const STORE_KEY = 'dame.online.v1';
 const store = (() => {
-  try { return { nick: '', timer: 0, rooms: {}, ...JSON.parse(localStorage.getItem(STORE_KEY) || '{}') }; } catch { return { nick: '', timer: 0, rooms: {} }; }
+  try { return { timer: 0, rooms: {}, ...JSON.parse(localStorage.getItem(STORE_KEY) || '{}') }; } catch { return { timer: 0, rooms: {} }; }
 })();
 function saveStore() {
   for (const [code, r] of Object.entries(store.rooms)) if (roomExpired(r.at)) delete store.rooms[code];
@@ -67,7 +68,7 @@ export function init(theApi) {
   $('#ol-create-btn').addEventListener('click', createRoom);
   $('#ol-join-btn').addEventListener('click', () => joinRoom($('#ol-code').value));
   $('#ol-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom($('#ol-code').value); });
-  $('#nick').addEventListener('change', () => { const n = cleanNickname($('#nick').value); if (n) { store.nick = n; saveStore(); } });
+  $('#nick').addEventListener('change', () => setNick($('#nick').value));
   setupChat();
   window.addEventListener('offline', () => { if (S) banner('You’re offline — moves will send when the signal comes back.'); });
 }
@@ -82,21 +83,19 @@ function msg(text) { $('#ol-msg').textContent = text; }
 /** Show the Play-a-friend screen, optionally with a room code from an invite link. */
 export function open(code = '') {
   api.go('online');
-  $('#nick').value = store.nick || '';
+  $('#nick').value = getNick();
   $('#ol-code').value = normalizeRoomCode(code) || '';
   paintSetup();
   msg('');
   if (code) {
-    if (cleanNickname(store.nick)) joinRoom(code);
+    if (getNick()) joinRoom(code);
     else { msg('Pick a nickname, then tap Join.'); $('#nick').focus(); }
   }
 }
 
 function readNick() {
-  const n = cleanNickname($('#nick').value);
+  const n = setNick($('#nick').value);
   if (!n) { msg('Choose a nickname of 2–16 letters (and keep it friendly).'); $('#nick').focus(); return null; }
-  store.nick = n;
-  saveStore();
   return n;
 }
 
@@ -207,7 +206,6 @@ function start(o) {
     chatIn: new RateLimiter({ gapMs: 300, burst: 10, windowMs: 15000 }),
     lastSyncAsk: 0,
     peerAskedRematch: false,
-    timer: null,
   };
   S.net = new RealtimeRoom({
     url: SUPABASE_URL,
@@ -326,6 +324,7 @@ function startGame(moves) {
     names: { 1: hostMeta?.n || 'Host', [-1]: guestMeta?.n || 'Guest' },
     firstTurn: S.firstTurn,
     moves,
+    turnSeconds: Number(S.opts.tm) || 0,
     online: controller,
   });
   clearChatLog();
@@ -414,7 +413,6 @@ export function leave(navigate = true) {
   S.net.send('bye', {});
   const net = S.net;
   setTimeout(() => net.close(), 300);
-  clearInterval(S.timer);
   clearInterval(S.peerTimer);
   clearTimeout(S.expiryTimer);
   delete store.rooms[S.code];
@@ -434,35 +432,12 @@ const controller = {
     if (S.dbOk) db('dame_push_move', { p_code: S.code, p_game: S.game, p_ply: ply, p_move: code }).catch(() => {});
   },
   outOfSync() { askSync(); },
-  turnStarted(turn) {
-    if (!S) return;
-    clearInterval(S.timer);
-    api.setClock(1, '');
-    api.setClock(-1, '');
-    const secs = Number(S.opts?.tm) || 0;
-    if (!secs || api.isOver()) return;
-    const deadline = Date.now() + secs * 1000;
-    let autoPlayed = false;
-    const tick = () => {
-      const left = Math.ceil((deadline - Date.now()) / 1000);
-      const l = Math.max(0, left);
-      api.setClock(turn, `${Math.floor(l / 60)}:${String(l % 60).padStart(2, '0')}`, left <= 5);
-      if (left <= 0 && turn === localSide() && !autoPlayed) {
-        autoPlayed = true;
-        api.say('too slow — random move!', true);
-        api.autoMove();
-      }
-      if (left <= -20 && turn !== localSide() && S.peer) {
-        clearInterval(S.timer);
-        banner(`${peerName()} ran out of time.`, { label: 'Claim the win', run: () => { banner(''); finishLocally(localSide(), 'timeout'); } });
-      }
-    };
-    tick();
-    S.timer = setInterval(tick, 250);
+  remoteTimedOut() {
+    if (!S?.peer || api.isOver()) return;
+    banner(`${peerName()} ran out of time.`, { label: 'Claim the win', run: () => { banner(''); finishLocally(localSide(), 'timeout'); } });
   },
   gameEnded(result) {
     if (!S) return;
-    clearInterval(S.timer);
     if (S.dbOk) db('dame_finish', { p_code: S.code, p_game: S.game, p_result: `${result.winner}:${result.reason}` }).catch(() => {});
   },
   resign() {

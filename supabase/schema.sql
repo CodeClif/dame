@@ -101,3 +101,56 @@ grant execute on function
 -- (Database → Extensions) and run once:
 --   select cron.schedule('dame-cleanup', '17 * * * *',
 --     $$delete from public.dame_rooms where expires_at < now() - interval '1 day'$$);
+
+-- ===================================================================== weekly leaderboards
+-- Anonymous nicknames and a group id (campus, school or region from data/groups.json).
+-- Points: computer win easy 1 / medium 2 / hard 3, online win 3, any finished online game 1,
+-- daily puzzle solved 2. Weeks start on Monday (UTC). No personal data is kept.
+
+create table if not exists public.dame_scores (
+  id          bigint generated always as identity primary key,
+  created_at  timestamptz not null default now(),
+  week        date not null default (date_trunc('week', now() at time zone 'utc'))::date,
+  nickname    text not null,
+  group_id    text not null,
+  points      smallint not null,
+  reason      text not null
+);
+create index if not exists dame_scores_week on public.dame_scores (week);
+create index if not exists dame_scores_nick on public.dame_scores (nickname, created_at);
+alter table public.dame_scores enable row level security;
+
+create or replace function public.dame_add_points(p_nickname text, p_group text, p_points int, p_reason text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  allowed int := case p_reason
+    when 'cpu-easy' then 1 when 'cpu-medium' then 2 when 'cpu-hard' then 3
+    when 'online-win' then 3 when 'online-play' then 1 when 'puzzle' then 2 end;
+begin
+  if allowed is null or p_points <> allowed then return false; end if;
+  if p_nickname !~ '^[^<>&"''\\]{2,16}$' or p_group !~ '^[a-z0-9-]{2,40}$' then return false; end if;
+  -- simple flood limits per nickname
+  if (select count(*) from dame_scores where nickname = p_nickname and created_at > now() - interval '10 minutes') >= 15 then return false; end if;
+  if (select coalesce(sum(points), 0) from dame_scores where nickname = p_nickname and created_at > now() - interval '1 day') >= 80 then return false; end if;
+  if p_reason = 'puzzle' and exists (select 1 from dame_scores where nickname = p_nickname and reason = 'puzzle' and created_at > date_trunc('day', now())) then return false; end if;
+  insert into dame_scores (nickname, group_id, points, reason) values (p_nickname, p_group, p_points, p_reason);
+  return true;
+end $$;
+
+create or replace function public.dame_leaderboard()
+returns jsonb language sql stable security definer set search_path = public as $$
+  with w as (
+    select * from dame_scores where week = (date_trunc('week', now() at time zone 'utc'))::date
+  ), players as (
+    select nickname as n, group_id as g, sum(points)::int as p from w group by nickname, group_id order by p desc, n limit 20
+  ), groups as (
+    select group_id as g, sum(points)::int as p, count(distinct nickname)::int as c from w group by group_id order by p desc, g limit 20
+  )
+  select jsonb_build_object(
+    'week', (date_trunc('week', now() at time zone 'utc'))::date,
+    'players', coalesce((select jsonb_agg(to_jsonb(players)) from players), '[]'::jsonb),
+    'groups', coalesce((select jsonb_agg(to_jsonb(groups)) from groups), '[]'::jsonb));
+$$;
+
+revoke all on public.dame_scores from anon, authenticated;
+grant execute on function public.dame_add_points(text, text, int, text), public.dame_leaderboard() to anon, authenticated;

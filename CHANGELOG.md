@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — Reasons to come back
+
+- Daily puzzle: one position a day, the same for everyone, "win within N moves" against the computer's best defence. Streak counter and a short share message (Web Share or WhatsApp). 30 puzzles in `data/puzzles.json`, each proven solvable by the test suite.
+- Weekly leaderboards: top players and top campuses, schools or regions (`data/groups.json`), anonymous nicknames only.
+- Replay clip: the last moves redrawn on a canvas and recorded as a short video to share or save.
+- Unlockable characters from win streaks and puzzle streaks (owl, hedgehog, kenkey seller, tailor), plus four seasonal placeholders. Cosmetic only.
+- Speed mode: 10 seconds a turn; a 10-second option for online rooms too.
+- How-to-play covers the new modes. README and SQL updated.
+
 ## 1.2.0 — Play a friend online
 
 - "Play a friend online": create a room with a 6-letter code and share the invite link (Web Share, or copy). Opening the link joins the match.

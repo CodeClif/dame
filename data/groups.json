@@ -1,0 +1,251 @@
+{
+ "version": 1,
+ "note": "Add or rename groups here. ids: lowercase letters, numbers and dashes (2-40 chars). Changing an id starts that group from zero.",
+ "groups": [
+  {
+   "id": "university-of-ghana-legon",
+   "name": "University of Ghana, Legon",
+   "type": "campus"
+  },
+  {
+   "id": "knust",
+   "name": "KNUST",
+   "type": "campus"
+  },
+  {
+   "id": "university-of-cape-coast",
+   "name": "University of Cape Coast",
+   "type": "campus"
+  },
+  {
+   "id": "university-of-education-winneba",
+   "name": "University of Education, Winneba",
+   "type": "campus"
+  },
+  {
+   "id": "university-for-development-studies",
+   "name": "University for Development Studies",
+   "type": "campus"
+  },
+  {
+   "id": "ashesi-university",
+   "name": "Ashesi University",
+   "type": "campus"
+  },
+  {
+   "id": "gimpa",
+   "name": "GIMPA",
+   "type": "campus"
+  },
+  {
+   "id": "upsa",
+   "name": "UPSA",
+   "type": "campus"
+  },
+  {
+   "id": "umat-tarkwa",
+   "name": "UMaT Tarkwa",
+   "type": "campus"
+  },
+  {
+   "id": "uhas-ho",
+   "name": "UHAS Ho",
+   "type": "campus"
+  },
+  {
+   "id": "uenr-sunyani",
+   "name": "UENR Sunyani",
+   "type": "campus"
+  },
+  {
+   "id": "accra-technical-university",
+   "name": "Accra Technical University",
+   "type": "campus"
+  },
+  {
+   "id": "kumasi-technical-university",
+   "name": "Kumasi Technical University",
+   "type": "campus"
+  },
+  {
+   "id": "takoradi-technical-university",
+   "name": "Takoradi Technical University",
+   "type": "campus"
+  },
+  {
+   "id": "academic-city-university",
+   "name": "Academic City University",
+   "type": "campus"
+  },
+  {
+   "id": "central-university",
+   "name": "Central University",
+   "type": "campus"
+  },
+  {
+   "id": "valley-view-university",
+   "name": "Valley View University",
+   "type": "campus"
+  },
+  {
+   "id": "achimota-school",
+   "name": "Achimota School",
+   "type": "campus"
+  },
+  {
+   "id": "accra-academy",
+   "name": "Accra Academy",
+   "type": "campus"
+  },
+  {
+   "id": "adisadel-college",
+   "name": "Adisadel College",
+   "type": "campus"
+  },
+  {
+   "id": "aburi-girls-shs",
+   "name": "Aburi Girls' SHS",
+   "type": "campus"
+  },
+  {
+   "id": "ghana-national-college",
+   "name": "Ghana National College",
+   "type": "campus"
+  },
+  {
+   "id": "holy-child-school",
+   "name": "Holy Child School",
+   "type": "campus"
+  },
+  {
+   "id": "keta-shs",
+   "name": "Keta SHS",
+   "type": "campus"
+  },
+  {
+   "id": "mfantsipim-school",
+   "name": "Mfantsipim School",
+   "type": "campus"
+  },
+  {
+   "id": "opoku-ware-school",
+   "name": "Opoku Ware School",
+   "type": "campus"
+  },
+  {
+   "id": "presec-legon",
+   "name": "PRESEC Legon",
+   "type": "campus"
+  },
+  {
+   "id": "prempeh-college",
+   "name": "Prempeh College",
+   "type": "campus"
+  },
+  {
+   "id": "st-augustine-s-college",
+   "name": "St. Augustine's College",
+   "type": "campus"
+  },
+  {
+   "id": "tamale-shs",
+   "name": "Tamale SHS",
+   "type": "campus"
+  },
+  {
+   "id": "wesley-girls-high-school",
+   "name": "Wesley Girls' High School",
+   "type": "campus"
+  },
+  {
+   "id": "region-ahafo",
+   "name": "Ahafo Region",
+   "type": "region"
+  },
+  {
+   "id": "region-ashanti",
+   "name": "Ashanti Region",
+   "type": "region"
+  },
+  {
+   "id": "region-bono",
+   "name": "Bono Region",
+   "type": "region"
+  },
+  {
+   "id": "region-bono-east",
+   "name": "Bono East Region",
+   "type": "region"
+  },
+  {
+   "id": "region-central",
+   "name": "Central Region",
+   "type": "region"
+  },
+  {
+   "id": "region-eastern",
+   "name": "Eastern Region",
+   "type": "region"
+  },
+  {
+   "id": "region-greater-accra",
+   "name": "Greater Accra Region",
+   "type": "region"
+  },
+  {
+   "id": "region-north-east",
+   "name": "North East Region",
+   "type": "region"
+  },
+  {
+   "id": "region-northern",
+   "name": "Northern Region",
+   "type": "region"
+  },
+  {
+   "id": "region-oti",
+   "name": "Oti Region",
+   "type": "region"
+  },
+  {
+   "id": "region-savannah",
+   "name": "Savannah Region",
+   "type": "region"
+  },
+  {
+   "id": "region-upper-east",
+   "name": "Upper East Region",
+   "type": "region"
+  },
+  {
+   "id": "region-upper-west",
+   "name": "Upper West Region",
+   "type": "region"
+  },
+  {
+   "id": "region-volta",
+   "name": "Volta Region",
+   "type": "region"
+  },
+  {
+   "id": "region-western",
+   "name": "Western Region",
+   "type": "region"
+  },
+  {
+   "id": "region-western-north",
+   "name": "Western North Region",
+   "type": "region"
+  },
+  {
+   "id": "diaspora",
+   "name": "Ghanaians abroad",
+   "type": "region"
+  },
+  {
+   "id": "other",
+   "name": "Somewhere else",
+   "type": "region"
+  }
+ ]
+}

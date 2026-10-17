@@ -1,6 +1,6 @@
 {
   "name": "dame",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "private": true,
   "description": "Dame — Ghanaian-style draughts in a hand-drawn notebook style",
   "type": "module",

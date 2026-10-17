@@ -199,6 +199,97 @@ const fisherman = () => {
   ${face(50, 48, { s: 0.92, gap: 6.5, mouth: 8 })}`;
 };
 
+// ---------- Unlockable friends (cosmetic only) ----------
+
+const owl = () => `
+  <path d="M28 30L22 14L38 24ZM72 30L78 14L62 24Z" fill="#8a5a33" ${L}/>
+  <path d="M20 58C20 30 80 30 80 58C82 82 66 92 50 92C34 92 18 82 20 58Z" fill="#9b6a3d" ${L}/>
+  <path d="M34 66q4 4 8 0M46 72q4 4 8 0M58 66q4 4 8 0M40 80q4 4 8 0M52 80q4 4 8 0" fill="none" stroke="#e6c79a" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="38" cy="46" r="11" fill="#fbf1de" ${L}/><circle cx="62" cy="46" r="11" fill="#fbf1de" ${L}/>
+  <path d="M46 52L50 60L54 52Z" fill="#f6b33c" ${THIN}/>
+  ${kenteStrip('M30 30Q50 22 70 30L69 36Q50 28 31 36Z')}
+  ${face(50, 46, { gap: 12, noMouth: true, cheeks: false })}`;
+
+const hedgehog = () => `
+  <path d="M14 78L10 68L18 66L14 56L24 56L22 44L32 46L34 34L42 40L48 28L54 38L62 30L64 42L74 38L74 50L84 50L80 60L90 64L84 72L90 80Z" fill="#6b4a2a" ${L}/>
+  <ellipse cx="54" cy="70" rx="26" ry="18" fill="#e9c99a" ${L}/>
+  <ellipse cx="80" cy="74" rx="6" ry="4.6" fill="#2b2622"/>
+  <path d="M34 88V94M62 88V94" ${L}/>
+  <path d="M38 40L46 46L38 52ZM54 40L46 46L54 52Z" fill="url(#kente)" ${THIN}/><circle cx="46" cy="46" r="2.6" fill="#d23a2a" ${THIN}/>
+  ${face(58, 66, { gap: 8, mouth: 9 })}`;
+
+const kenkey = () => {
+  const k = SKIN[2];
+  return `
+  <path d="M30 74L24 32M70 74L76 32" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>
+  <path d="M30 74L24 32M70 74L76 32" stroke="${k}" stroke-width="4.6" stroke-linecap="round"/>
+  ${torso('#3d5fb8', `<path d="M34 76H66V97H34Z" fill="#f4efe4" ${THIN}/><path d="M38 84H62" stroke="#d23a2a" stroke-width="2"/>`)}
+  ${head(50, 54, 15, k)}
+  <path d="M33 50C31 36 69 36 67 50C61 44 39 44 33 50Z" fill="#3f8f3a" ${L}/>
+  <path d="M20 30H80L74 38H26Z" fill="#b9874f" ${L}/>
+  <ellipse cx="34" cy="24" rx="7" ry="5" fill="#d9c08a" ${THIN}/><ellipse cx="48" cy="21" rx="7" ry="5.5" fill="#cdb27a" ${THIN}/><ellipse cx="62" cy="23" rx="7" ry="5" fill="#d9c08a" ${THIN}/>
+  <path d="M30 22l8 4M44 19l8 4M58 21l8 4" stroke="#8a6a3b" stroke-width="1.4"/>
+  ${face(50, 56, { s: 0.9, gap: 6, mouth: 8 })}`;
+};
+
+const tailor = () => {
+  const k = SKIN[0];
+  return `
+  ${torso('#3d5fb8', '<path d="M40 70C42 82 44 90 42 98M60 70C58 82 56 90 58 98" fill="none" stroke="#f4d36b" stroke-width="5"/><path d="M41 76h3M42 82h3M43 88h3M58 76h-3M57 82h-3M56 88h-3" stroke="#2b2622" stroke-width="1.2"/>')}
+  <path d="M72 64L86 78M86 64L72 78" stroke="#9aa3ab" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="70" cy="80" r="4" fill="none" ${THIN}/><circle cx="88" cy="80" r="4" fill="none" ${THIN}/>
+  ${ears(46, k)}${head(50, 46, 16, k)}
+  <path d="M34 42C32 28 68 28 66 42C62 36 38 36 34 42Z" fill="${INK}"/>
+  <circle cx="50" cy="28" r="7" fill="${INK}"/><path d="M45 26L41 20M55 26L59 20" stroke="#f4d36b" stroke-width="2" stroke-linecap="round"/>
+  ${face(50, 48, { s: 0.92, gap: 6.5, mouth: 8 })}`;
+};
+
+// ---------- Seasonal placeholders (shown locked until their season) ----------
+
+const harmattan = () => `
+  <path d="M18 70C10 54 22 40 36 44C38 28 62 26 66 40C82 36 92 54 82 66C88 80 72 92 60 86C52 96 32 94 28 84C16 86 12 78 18 70Z" fill="#ead9b8" ${L}/>
+  <path d="M26 62q10-6 18 0t18 0 16 0M30 76q10-6 18 0t18 0" fill="none" stroke="#c9ad7e" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M84 30q6 0 6 6M10 42q-4 0-4 4M90 44q4 0 4 4" fill="none" stroke="#c9ad7e" stroke-width="2" stroke-linecap="round"/>
+  <path d="M70 26C76 22 82 26 80 32C76 30 72 30 70 26Z" fill="#c7843f" ${THIN}/>
+  ${kenteStrip('M40 40L60 40L58 46L42 46Z')}
+  ${face(50, 58, { gap: 9, mouth: 9 })}`;
+
+const rainfrog = () => `
+  <path d="M50 4V44" stroke="${INK}" stroke-width="2.6"/>
+  <path d="M14 26C20 4 80 4 86 26C76 20 66 22 60 26C56 20 44 20 40 26C34 22 24 20 14 26Z" fill="#3f8f3a" ${L}/>
+  <path d="M22 84C14 84 12 78 18 74M78 84C86 84 88 78 82 74" fill="#78b85a" ${L}/>
+  <path d="M20 66C20 46 80 46 80 66C80 84 66 90 50 90S20 84 20 66Z" fill="#78b85a" ${L}/>
+  <circle cx="36" cy="48" r="9" fill="#78b85a" ${L}/><circle cx="64" cy="48" r="9" fill="#78b85a" ${L}/>
+  <circle cx="36" cy="48" r="6" fill="#fff"/><circle cx="64" cy="48" r="6" fill="#fff"/>
+  <ellipse cx="50" cy="76" rx="16" ry="8" fill="#d6ecb0"/>
+  ${kenteStrip('M38 86L50 82L62 86L50 92Z')}
+  <path d="M40 34l-2 6M60 34l2 6" stroke="#5aa2d8" stroke-width="2.4" stroke-linecap="round"/>
+  ${face(50, 48, { gap: 14, mouth: 16 })}`;
+
+const masquerader = () => {
+  const k = SKIN[3];
+  return `
+  ${torso('#d23a2a', '<path d="M24 86H76M28 76H72" stroke="#f6c431" stroke-width="4"/><path d="M34 70L40 97M66 70L60 97" stroke="#3d5fb8" stroke-width="4"/><circle cx="50" cy="84" r="3" fill="#fff"/>')}
+  ${ears(50, k)}${head(50, 50, 15, k)}
+  <path d="M30 42L50 0L70 42Z" fill="#3d5fb8" ${L}/>
+  <path d="M38 26H62M34 34H66" stroke="#f6c431" stroke-width="3"/>
+  <circle cx="50" cy="0" r="4.4" fill="#f6c431" ${THIN}/>
+  <path d="M34 46C40 42 60 42 66 46L64 52C58 48 42 48 36 52Z" fill="#f4efe4" ${THIN}/>
+  ${face(50, 52, { s: 0.9, gap: 6, mouth: 8 })}`;
+};
+
+const caroler = () => {
+  const k = SKIN[4];
+  return `
+  ${torso('#3d5fb8', '<path d="M38 74H62V94H38Z" fill="#7a2d22" ' + THIN + '/><path d="M50 74V94" stroke="#f6c431" stroke-width="2"/>')}
+  ${ears(48, k)}${head(50, 48, 16, k)}
+  <path d="M32 42C34 22 60 16 72 26L80 42Z" fill="#d23a2a" ${L}/>
+  <path d="M30 42H72" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="80" cy="42" r="5" fill="#fff" ${THIN}/>
+  <path d="M44 58q6 6 12 0" fill="none" ${THIN}/>
+  ${face(50, 50, { s: 0.92, gap: 6.5, mouth: 10 })}`;
+};
+
 export const CHARACTERS = {
   tortoise: { team: 'forest', name: 'Nana Kwaku', kind: 'tortoise', draw: tortoise, crownY: 27 },
   antelope: { team: 'forest', name: 'Abena', kind: 'antelope', draw: antelope, crownY: 32 },
@@ -212,8 +303,24 @@ export const CHARACTERS = {
   farmer: { team: 'market', name: 'Afua', kind: 'farmer', draw: farmer, crownY: 31 },
   schoolchild: { team: 'market', name: 'Adwoa', kind: 'schoolchild', draw: schoolchild, crownY: 31 },
   fisherman: { team: 'market', name: 'Papa Yaw', kind: 'fisherman', draw: fisherman, crownY: 22 },
+  // Unlocked by playing well. Purely cosmetic: every piece follows the same rules.
+  owl: { team: 'forest', name: 'Nana Yaa', kind: 'owl', draw: owl, crownY: 30, unlock: { type: 'wins', n: 3, text: 'Win 3 games in a row' } },
+  hedgehog: { team: 'forest', name: 'Kwesi', kind: 'hedgehog', draw: hedgehog, crownY: 30, unlock: { type: 'puzzles', n: 3, text: '3-day puzzle streak' } },
+  kenkey: { team: 'market', name: 'Maame Esi', kind: 'kenkey seller', draw: kenkey, crownY: 15, unlock: { type: 'wins', n: 5, text: 'Win 5 games in a row' } },
+  tailor: { team: 'market', name: 'Aunty Efua', kind: 'tailor', draw: tailor, crownY: 22, unlock: { type: 'puzzles', n: 7, text: '7-day puzzle streak' } },
+  // Seasonal placeholders: drawn and listed, switched on in a later update.
+  harmattan: { team: 'forest', name: 'Harmattan', kind: 'dusty breeze', draw: harmattan, crownY: 30, seasonal: 'Dec – Feb' },
+  rainfrog: { team: 'forest', name: 'Nsuo', kind: 'rainy-season frog', draw: rainfrog, crownY: 40, seasonal: 'May – Jul' },
+  masquerader: { team: 'market', name: 'Fancy Dress', kind: 'masquerader', draw: masquerader, crownY: 6, seasonal: 'New Year' },
+  caroler: { team: 'market', name: 'Kofi Carols', kind: 'caroler', draw: caroler, crownY: 22, seasonal: 'December' },
 };
 
+/** The starting six of each team (always available). */
+export const BASE_ROSTER = {
+  forest: Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].team === 'forest' && !CHARACTERS[k].unlock && !CHARACTERS[k].seasonal),
+  market: Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].team === 'market' && !CHARACTERS[k].unlock && !CHARACTERS[k].seasonal),
+};
+/** Every character of each team, including locked and seasonal ones (so a friend's picks always draw). */
 export const TEAM_ROSTER = {
   forest: Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].team === 'forest'),
   market: Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].team === 'market'),

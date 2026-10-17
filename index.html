@@ -31,6 +31,10 @@
         <button class="sketch-btn big" data-go="setup" data-mode="cpu">Play the computer</button>
         <button class="sketch-btn big alt" data-go="setup" data-mode="pnp">Pass &amp; play</button>
         <button class="sketch-btn big friend" id="friend-btn" hidden>Play a friend online</button>
+        <div class="menu-row two">
+          <button class="sketch-btn" id="puzzle-btn">Daily puzzle</button>
+          <button class="sketch-btn" id="leaders-btn" hidden>Leaderboard</button>
+        </div>
         <div class="menu-row">
           <button class="sketch-btn" data-go="howto">How to play</button>
           <button class="sketch-btn" data-go="shop">Shop</button>
@@ -65,6 +69,8 @@
           <span class="label hand" id="lineup1-label">Your line-up <small>(tap to add or remove)</small></span>
           <div class="lineup" id="lineup1"></div>
         </div>
+        <label class="toggle"><input type="checkbox" id="speed-toggle"><span class="box"></span>
+          <span><b>Speed mode</b><small>10 seconds a turn. Too slow and a random move is played for you.</small></span></label>
         <div class="field" id="lineup2-field">
           <span class="label hand" id="lineup2-label">Player 2 line-up</span>
           <div class="lineup" id="lineup2"></div>
@@ -143,6 +149,7 @@
           <span class="label hand">Turn timer</span>
           <div class="seg" id="ol-timer-seg">
             <button data-timer="0">Off</button>
+            <button data-timer="10">10 s</button>
             <button data-timer="30">30 s</button>
             <button data-timer="60">60 s</button>
           </div>
@@ -154,6 +161,33 @@
           <button class="sketch-btn" id="ol-join-btn">Join</button>
         </div>
         <p class="ol-msg hand" id="ol-msg" role="status"></p>
+      </div>
+    </section>
+
+    <!-- LEADERBOARD -->
+    <section id="leaders" class="screen" aria-label="Leaderboard">
+      <header class="page-head">
+        <button class="icon-btn back" data-go="home" aria-label="Back"></button>
+        <h2 class="hand">This week’s best</h2>
+      </header>
+      <div class="page-body">
+        <div class="field">
+          <label class="label hand" for="lb-nick">Nickname</label>
+          <input id="lb-nick" class="text-in" maxlength="16" autocomplete="off" placeholder="e.g. Kofi B">
+        </div>
+        <div class="field">
+          <label class="label hand" for="lb-group">Your campus, school or region</label>
+          <select id="lb-group" class="text-in"></select>
+          <small class="hint-s">Anonymous nicknames only — please don’t use your full name. Points reset every Monday. No prizes, just bragging rights.</small>
+        </div>
+        <div class="seg" id="lb-tabs">
+          <button data-tab="players" class="on">Top players</button>
+          <button data-tab="groups">Top groups</button>
+        </div>
+        <ol class="board-list" id="lb-list"></ol>
+        <p class="note hand" id="lb-msg"></p>
+        <details class="points-help"><summary class="hand">How do I score?</summary>
+          <p>Beat the computer: easy 1, medium 2, hard 3 points. Win online: 3, finish an online game: 1. Solve the daily puzzle: 2.</p></details>
       </div>
     </section>
 

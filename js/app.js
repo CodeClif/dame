@@ -3,6 +3,8 @@ import { CHARACTERS, TEAMS, TEAM_ROSTER, characterSVG, DEFS_SVG } from './charac
 import { boardSVG, titleSVG, doodle, packIcon, icon, wobblyCircle, seeded } from './sketch.js';
 import { sfx, setSoundEnabled } from './sound.js';
 import { chooseMove } from './ai.js';
+import { encodeMove, decodeMove } from './protocol.js';
+import { onlineConfigured } from './config.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -265,9 +267,15 @@ function newGame(config) {
     config,
     mode: config.mode,
     level: config.level,
-    opts: { flyingKings: settings.flyingKings, menCaptureBackward: settings.menCaptureBackward },
+    opts: config.opts || { flyingKings: settings.flyingKings, menCaptureBackward: settings.menCaptureBackward },
     teams: config.teams,
-    human: { 1: true, [-1]: config.mode === 'pnp' },
+    human: config.mode === 'online'
+      ? { [config.localSide]: true, [-config.localSide]: false }
+      : { 1: true, [-1]: config.mode === 'pnp' },
+    localSide: config.localSide || 1,
+    flip: config.mode === 'online' && config.localSide === -1,
+    online: config.online || null, // the online controller, when playing a friend
+    log: [], // encoded moves, in order
     state: R.createInitialState(config.firstTurn),
     ids: new Array(64).fill(null),
     pieces: new Map(),
@@ -296,28 +304,66 @@ function newGame(config) {
       }
     }
   }
+  // Resuming an online game: replay the stored moves straight onto the board.
+  for (const code of config.moves || []) {
+    const m = decodeMove(G.state, G.opts, code);
+    if (!m) break;
+    commitMove(m);
+  }
+  document.body.dataset.mode = config.mode;
   go('game');
   $('#board-art').innerHTML = boardSVG(7 + Math.floor(Math.random() * 1000));
-  $('#ranks').innerHTML = [8, 7, 6, 5, 4, 3, 2, 1].map((n, i) => `<span style="--i:${i}">${n}</span>`).join('');
-  $('#files').innerHTML = 'abcdefgh'.split('').map((l, i) => `<span style="--i:${i + 8}">${l}</span>`).join('');
+  const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
+  const files = 'abcdefgh'.split('');
+  if (G.flip) { ranks.reverse(); files.reverse(); }
+  $('#ranks').innerHTML = ranks.map((n, i) => `<span style="--i:${i}">${n}</span>`).join('');
+  $('#files').innerHTML = files.map((l, i) => `<span style="--i:${i + 8}">${l}</span>`).join('');
   overlayEl.innerHTML = '';
   $('#trail').innerHTML = '';
   $('#fx').innerHTML = '';
   renderPieces(true);
   renderBars();
   renderTray();
+  drawTrail();
   const token = G.token;
   setTimeout(() => {
     if (G.token !== token) return;
-    say('start');
+    if (!G.log.length) say('start');
     G.busy = false;
     startTurn();
+    drainRemote();
   }, 2100);
 }
 
+// Apply a move to the game model without animating it (used when resuming).
+function commitMove(move) {
+  const side = R.sideOf(G.state.board[move.from]);
+  const id = G.ids[move.from];
+  for (const c of move.captures) {
+    const victim = G.pieces.get(G.ids[c]);
+    if (victim) G.captured[side].push(victim.char);
+    G.pieces.delete(G.ids[c]);
+    G.ids[c] = null;
+  }
+  G.state = R.applyMove(G.state, move);
+  G.ids[move.from] = null;
+  G.ids[move.to] = id;
+  if (move.promote) G.pieces.get(id).king = true;
+  G.lastMove = move;
+  G.log.push(encodeMove(move));
+}
+
+// Online guests see the board turned round so their own pieces are at the bottom.
+// `view` maps a board square to the square drawn on screen (it is its own inverse).
+const view = (s) => (G?.flip ? 63 - s : s);
+const vRow = (s) => R.rowOf(view(s));
+const vCol = (s) => R.colOf(view(s));
+const bottomSide = () => (G?.flip ? -1 : 1);
+const barFor = (side) => (side === bottomSide() ? $('#bar-bottom') : $('#bar-top'));
+
 function place(el, s) {
-  el.style.setProperty('--r', R.rowOf(s));
-  el.style.setProperty('--c', R.colOf(s));
+  el.style.setProperty('--r', vRow(s));
+  el.style.setProperty('--c', vCol(s));
 }
 
 function renderPieces(intro = false) {
@@ -346,17 +392,19 @@ function renderPieces(intro = false) {
 
 function sideLabel(side) {
   if (G.mode === 'cpu') return side === 1 ? 'You' : 'Computer';
+  if (G.mode === 'online') return side === G.localSide ? 'You' : (G.config.names?.[side] || 'Friend');
   return side === 1 ? 'Player 1' : 'Player 2';
 }
 
 function renderBars() {
   for (const side of [1, -1]) {
-    const bar = side === 1 ? $('#bar-bottom') : $('#bar-top');
+    const bar = barFor(side);
     const team = TEAMS[G.teams[side]];
-    const sub = G.mode === 'cpu' && side === -1 ? `${team.short} · ${G.level}` : team.name;
+    const sub = G.mode === 'cpu' && side === -1 ? `${team.short} · ${G.level}` : G.mode === 'online' ? team.short : team.name;
     bar.innerHTML = `<span class="avatar char">${characterSVG(G.config.lineups[side][0])}</span>
       <span class="who">${sideLabel(side)}</span>
       <span class="status"><span class="sub">${sub}</span><span class="thinking hand">thinking…</span></span>
+      <span class="clock hand" data-clock></span>
       <span class="count"><i style="background:${team.color}"></i><b data-count>${R.countPieces(G.state.board, side)}</b></span>`;
   }
   updateBars();
@@ -364,19 +412,20 @@ function renderBars() {
 
 function updateBars(thinking = false) {
   for (const side of [1, -1]) {
-    const bar = side === 1 ? $('#bar-bottom') : $('#bar-top');
+    const bar = barFor(side);
     bar.classList.toggle('active', !G.over && G.state.turn === side);
     bar.classList.toggle('thinking-on', thinking && G.state.turn === side);
     $('[data-count]', bar).textContent = `×${R.countPieces(G.state.board, side)}`;
   }
-  boardEl.dataset.turn = G.over ? '' : String(G.state.turn);
+  boardEl.dataset.turn = G.over ? '' : String(G.state.turn * bottomSide());
   $('#undo-btn').disabled = !G.history.length;
 }
 
 // Captured-pieces tray under the board: each side's haul as little heads.
 function renderTray(fresh = null) {
+  const halves = $$('.tray-side');
   for (const side of [1, -1]) {
-    const el = $(`.tray-side[data-side="${side}"]`);
+    const el = halves[side === bottomSide() ? 0 : 1];
     $('.tl', el).textContent = `${sideLabel(side)} took`;
     const list = G.captured[side];
     $('.heads', el).innerHTML = list.map((k, i) => `<span class="char${fresh === side && i === list.length - 1 ? ' new' : ''}">${characterSVG(k, { withBase: false })}</span>`).join('');
@@ -391,7 +440,30 @@ function startTurn() {
   G.selected = null;
   updateBars();
   drawOverlay();
-  if (!G.human[G.state.turn]) cpuTurn();
+  G.online?.turnStarted(G.state.turn);
+  if (!G.human[G.state.turn] && G.mode === 'cpu') cpuTurn();
+}
+
+// ----- moves from the other player (online) -----
+
+const remoteQueue = [];
+/** Queue an opponent's move; it is checked against the rules before it is played. */
+function remoteMove(code, ply, catchUp = false) {
+  remoteQueue.push({ code, ply, catchUp });
+  drainRemote();
+}
+function drainRemote() {
+  if (!G || G.mode !== 'online' || G.busy || G.over) return;
+  while (remoteQueue.length) {
+    const { code, ply, catchUp } = remoteQueue.shift();
+    if (ply < G.log.length) continue; // already have it
+    // Catch-up moves (after a reconnect) may be our own; live ones must be the opponent's.
+    if (ply > G.log.length || (!catchUp && G.human[G.state.turn])) { G.online?.outOfSync(); remoteQueue.length = 0; return; }
+    const move = decodeMove(G.state, G.opts, code);
+    if (!move) { G.online?.outOfSync(); remoteQueue.length = 0; return; }
+    performMove(move, true);
+    return; // performMove calls drainRemote again when it is done
+  }
 }
 
 // ----- computer opponent (in a worker, falling back to the main thread) -----
@@ -446,7 +518,7 @@ boardEl.addEventListener('pointerdown', (e) => {
   const y = ((e.clientY - rect.top) / rect.height) * 8;
   if (x < 0 || y < 0 || x >= 8 || y >= 8) return;
   e.preventDefault();
-  handleTap(R.sq(Math.floor(y), Math.floor(x)), y - Math.floor(y));
+  handleTap(view(R.sq(Math.floor(y), Math.floor(x))), y - Math.floor(y));
 });
 
 function handleTap(s, fracY) {
@@ -460,7 +532,7 @@ function handleTap(s, fracY) {
     }
   }
   // Characters stand taller than their square: a tap on a head lands in the square above.
-  if (R.sideOf(G.state.board[s]) !== turn && fracY > 0.55 && R.rowOf(s) < 7 && R.sideOf(G.state.board[s + 8]) === turn) s += 8;
+  if (R.sideOf(G.state.board[s]) !== turn && fracY > 0.55 && vRow(s) < 7 && R.sideOf(G.state.board[view(view(s) + 8)]) === turn) s = view(view(s) + 8);
   if (R.sideOf(G.state.board[s]) !== turn) {
     if (G.selected != null) { G.selected = null; drawOverlay(); sfx.tap(); }
     return;
@@ -493,7 +565,7 @@ function shake(el) {
 
 // ----- red pen overlay -----
 
-const center = (s) => [R.colOf(s) * 100 + 50, R.rowOf(s) * 100 + 50];
+const center = (s) => [vCol(s) * 100 + 50, vRow(s) * 100 + 50];
 const penRand = seeded(99);
 
 function drawOverlay(hintMove = null) {
@@ -537,7 +609,7 @@ function drawTrail() {
 const cellTransform = (r, c) => `translate(calc(${c} * 100%), calc(${r} * 100%))`;
 
 function hop(el, a, b) {
-  const [ra, ca, rb, cb] = [R.rowOf(a), R.colOf(a), R.rowOf(b), R.colOf(b)];
+  const [ra, ca, rb, cb] = [vRow(a), vCol(a), vRow(b), vCol(b)];
   const dist = Math.abs(rb - ra);
   const duration = 300 + dist * 75;
   const travel = el.animate([{ transform: cellTransform(ra, ca) }, { transform: cellTransform(rb, cb) }],
@@ -556,8 +628,8 @@ function hop(el, a, b) {
 function sparkle(s) {
   const fx = document.createElement('div');
   fx.className = 'spark';
-  fx.style.setProperty('--r', R.rowOf(s));
-  fx.style.setProperty('--c', R.colOf(s));
+  fx.style.setProperty('--r', vRow(s));
+  fx.style.setProperty('--c', vCol(s));
   const colors = ['#f6c431', '#d62828', '#3d8b47', '#4f74d0'];
   let rays = '';
   for (let k = 0; k < 10; k++) {
@@ -585,7 +657,7 @@ function knockOut(s) {
   el.style.zIndex = 40;
   sparkle(s);
   sfx.capture();
-  const base = cellTransform(R.rowOf(s), R.colOf(s));
+  const base = cellTransform(vRow(s), vCol(s));
   el.animate([
     { transform: base, opacity: 1 },
     { transform: `${base} translateY(-22%) rotate(-10deg) scale(1.1)`, opacity: 1, offset: 0.35 },
@@ -603,7 +675,7 @@ function snapshot() {
   };
 }
 
-async function performMove(move) {
+async function performMove(move, remote = false) {
   const token = G.token;
   G.busy = true;
   G.selected = null;
@@ -633,6 +705,8 @@ async function performMove(move) {
   for (const c of move.captures) { G.pieces.delete(G.ids[c]); G.ids[c] = null; }
   G.ids[move.to] = id;
   G.lastMove = move;
+  G.log.push(encodeMove(move));
+  if (G.mode === 'online' && !remote) G.online?.localMove(G.log[G.log.length - 1], G.log.length - 1);
   el.style.zIndex = '';
   drawTrail();
 
@@ -657,6 +731,7 @@ async function performMove(move) {
   if (G.token !== token) return;
   G.busy = false;
   startTurn();
+  drainRemote();
 }
 
 // ----- undo, hint, menu -----
@@ -697,6 +772,18 @@ $('#hint-btn').addEventListener('click', async () => {
 
 $('#menu-btn').addEventListener('click', () => {
   sfx.tap();
+  if (G?.mode === 'online') {
+    openModal(`<h2>Paused</h2><p class="hand" style="font-size:22px">Your friend can still see the board.</p>
+      <div class="actions">
+        <button class="sketch-btn big" data-act="close">Back to the game</button>
+        <button class="sketch-btn" data-act="resign"${G.over ? ' disabled' : ''}>Resign this game</button>
+        <button class="sketch-btn" data-act="leave">Leave the room</button>
+      </div>`, {
+      resign: () => { closeModal(); G.online?.resign(); },
+      leave: () => { closeModal(); G.online?.leave(); },
+    });
+    return;
+  }
   openModal(`<h2>Paused</h2><p class="hand" style="font-size:22px">Take a breather, chale.</p>
     <div class="actions">
       <button class="sketch-btn big" data-act="close">Back to the game</button>
@@ -713,10 +800,12 @@ $('#menu-btn').addEventListener('click', () => {
 // ----- end of game -----
 
 function endGame(result) {
+  if (G.over) return;
   G.over = true;
   G.busy = false;
   updateBars();
   drawOverlay();
+  G.online?.gameEnded(result);
   const { winner, reason } = result;
   const humanWon = G.mode === 'pnp' || G.human[winner];
   if (winner) {
@@ -732,16 +821,35 @@ function endGame(result) {
     line = 'Twenty-five quiet king moves each — no wahala, shake hands.';
   } else {
     const team = TEAMS[G.teams[winner]].name;
+    const you = sideLabel(loser) === 'You';
     if (G.mode === 'cpu') title = humanWon ? 'You win! Ayekoo!' : 'The computer wins';
+    else if (G.mode === 'online') title = humanWon ? 'You win! Ayekoo!' : `${sideLabel(winner)} wins`;
     else title = `${sideLabel(winner)} wins!`;
-    line = reason === 'no-pieces'
-      ? `The ${team} took every last piece.`
-      : `${sideLabel(loser)} ${G.mode === 'cpu' && loser === 1 ? 'have' : 'has'} no moves left. ${team} take it!`;
+    const reasons = {
+      'no-pieces': `The ${team} took every last piece.`,
+      blocked: `${sideLabel(loser)} ${you ? 'have' : 'has'} no moves left. ${team} take it!`,
+      resign: `${sideLabel(loser)} resigned. Good game!`,
+      left: `${sideLabel(loser)} left the game.`,
+      timeout: `${sideLabel(loser)} ran out of time.`,
+    };
+    line = reasons[reason] || reasons.blocked;
   }
   const party = winner
     ? [...new Set(G.config.lineups[winner])].slice(0, 4).map((k) => `<div class="piece char cheer dance"><div class="hopper">${characterSVG(k)}</div></div>`).join('')
     : `<div class="piece char dance"><div class="hopper">${characterSVG(G.config.lineups[1][0])}</div></div><div class="piece char dance"><div class="hopper">${characterSVG(G.config.lineups[-1][0])}</div></div>`;
+  const onlineActions = `<div class="actions">
+        <button class="sketch-btn big" data-act="orematch">Ask for a rematch</button>
+        <button class="sketch-btn" data-act="leave">Leave the room</button>
+      </div>`;
   setTimeout(() => {
+    if (G.mode === 'online') {
+      openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>${onlineActions}
+        <div class="ad-slot" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>`, {
+        orematch: () => { G.online?.requestRematch(); },
+        leave: () => { closeModal(); G.online?.leave(); },
+      }, false);
+      return;
+    }
     openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>
       <div class="actions">
         <button class="sketch-btn big" data-act="rematch">Rematch</button>
@@ -811,6 +919,13 @@ function renderHowto() {
       <li>Tap a piece: red pen circles it and dotted lines show every square it can reach. Tap an end point to go.</li>
       <li><b>Hint</b> suggests a move, <b>Undo</b> takes back your last move.</li>
       <li>Change flying kings and backward captures in <b>Settings</b>.</li>
+    </ul>
+    <h3>Playing a friend online</h3>
+    <ul>
+      <li>Tap <b>Play a friend online</b>, pick a nickname and create a room. Share the invite link (or the 6-letter code) on WhatsApp or SMS.</li>
+      <li>The room uses the host’s rules. If your signal drops, open the link again and the game carries on where it stopped.</li>
+      <li>With a turn timer on, a random move is played for you when time runs out.</li>
+      <li>Chat with quick phrases, emoji or short messages. Rude words are hidden, and you can mute or report anyone.</li>
     </ul>
     <h3>A few words from the margins</h3>
     <ul>
@@ -893,12 +1008,60 @@ $$('[data-setting]').forEach((input) => input.addEventListener('change', () => {
   sfx.tap();
 }));
 
+// ---------- online play (loaded only when needed) ----------
+
+/** What the online module may do to the game. */
+const api = {
+  settings, saveSettings, sfx, say, go, openModal, closeModal, newGame, remoteMove, endGame,
+  get game() { return G; },
+  isOver: () => !G || G.over,
+  /** Play a move for the local player (turn timer ran out). */
+  autoMove() {
+    if (!G || G.over || G.busy || !G.human[G.state.turn]) return;
+    const moves = R.getLegalMoves(G.state, G.opts);
+    if (moves.length) performMove(moves[Math.floor(Math.random() * moves.length)]);
+  },
+  setClock(side, text, low = false) {
+    if (!G) return;
+    const el = $('[data-clock]', barFor(side));
+    if (el) { el.textContent = text; el.classList.toggle('low', low); }
+  },
+  bubble(side, text) {
+    if (!G) return;
+    const bar = barFor(side);
+    $('.bubble', bar)?.remove();
+    const b = document.createElement('span');
+    b.className = `bubble ${side === bottomSide() ? 'up' : 'down'}`;
+    b.textContent = text;
+    bar.appendChild(b);
+    bar.style.zIndex = 25; // lift the bubble above the bunting and board
+    setTimeout(() => { b.remove(); if (!$('.bubble', bar)) bar.style.zIndex = ''; }, 4200);
+  },
+  sideLabel: (side) => sideLabel(side),
+};
+
+let onlineModule = null;
+async function online() {
+  onlineModule ||= import('./online.js').then((m) => { m.init(api); return m; });
+  return onlineModule;
+}
+$('#friend-btn').addEventListener('click', async () => {
+  sfx.tap();
+  (await online()).open();
+});
+
 // ---------- boot ----------
 
 document.body.insertAdjacentHTML('afterbegin', DEFS_SVG);
 paintIcons();
 renderDoodles();
 renderHome();
+$('#friend-btn').hidden = !onlineConfigured();
+// An invite link (?room=CODE) goes straight to the join screen.
+if (new URLSearchParams(location.search).has('room')) {
+  document.body.classList.add('skip-intro');
+  online().then((m) => m.open(new URLSearchParams(location.search).get('room')));
+}
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

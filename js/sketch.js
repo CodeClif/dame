@@ -257,6 +257,7 @@ export function icon(name) {
     case 'mute': return `<svg viewBox="0 0 32 32"><path d="M5 12.5H10L17 6.5V25.5L10 19.5H5Z" ${p}/><path d="M21 12L28 20M28 12L21 20" ${p}/></svg>`;
     case 'gear': return `<svg viewBox="0 0 32 32"><path d="M16 4.5V8.5M16 23.5V27.5M4.5 16H8.5M23.5 16H27.5M7.8 7.8L10.6 10.6M21.4 21.4L24.2 24.2M7.8 24.2L10.6 21.4M21.4 10.6L24.2 7.8" ${p}/><circle cx="16" cy="16" r="6.5" ${p}/></svg>`;
     case 'back': return `<svg viewBox="0 0 32 32"><path d="M19 7L9.5 16L19 25" ${p}/></svg>`;
+    case 'chat': return `<svg viewBox="0 0 32 32"><path d="M6 8.5C6 6.5 8 5.5 16 5.5S26 6.5 26 8.5V18C26 20 24 21 16 21L10 26V21C7 21 6 20 6 18Z" ${p}/><path d="M11 12H21M11 16H18" ${p}/></svg>`;
     case 'bulb': return `<svg viewBox="0 0 32 32"><path d="M11 20C7 16 8 6 16 6S25 16 21 20V23H11Z" ${p}/><path d="M12 27H20" ${p}/></svg>`;
     default: return '';
   }

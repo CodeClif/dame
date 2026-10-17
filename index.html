@@ -30,6 +30,7 @@
       <nav class="menu">
         <button class="sketch-btn big" data-go="setup" data-mode="cpu">Play the computer</button>
         <button class="sketch-btn big alt" data-go="setup" data-mode="pnp">Pass &amp; play</button>
+        <button class="sketch-btn big friend" id="friend-btn" hidden>Play a friend online</button>
         <div class="menu-row">
           <button class="sketch-btn" data-go="howto">How to play</button>
           <button class="sketch-btn" data-go="shop">Shop</button>
@@ -97,12 +98,63 @@
       </div>
       <div class="ad-slot game-ad" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>
       <div class="ground" id="ground" aria-hidden="true"></div>
+      <div class="chat" id="chat" hidden>
+        <div class="chat-head"><b class="hand">Chat</b>
+          <button class="chip" id="chat-mute" aria-pressed="false">Mute</button>
+          <button class="icon-btn" id="chat-close" aria-label="Close chat">✕</button></div>
+        <div class="chat-log" id="chat-log" aria-live="polite"></div>
+        <div class="chips" id="chat-phrases"></div>
+        <div class="chips emoji" id="chat-emoji"></div>
+        <form class="chat-form" id="chat-form" autocomplete="off">
+          <input id="chat-input" maxlength="80" placeholder="Say something nice…" enterkeyhint="send">
+          <button class="sketch-btn" type="submit">Send</button>
+        </form>
+        <small class="chat-count" id="chat-count">0/80</small>
+      </div>
       <footer class="controls">
         <button class="ctrl" id="menu-btn"><span class="ic" data-icon="menu"></span><span>Menu</span></button>
         <button class="ctrl" id="undo-btn"><span class="ic" data-icon="undo"></span><span>Undo</span></button>
         <button class="ctrl" id="hint-btn"><span class="ic" data-icon="bulb"></span><span>Hint</span></button>
+        <button class="ctrl" id="chat-btn"><span class="ic" data-icon="chat"></span><span>Chat</span><i class="dot" hidden></i></button>
         <button class="ctrl sound-toggle" aria-label="Toggle sound"></button>
       </footer>
+    </section>
+
+    <!-- ONLINE -->
+    <section id="online" class="screen" aria-label="Play a friend">
+      <header class="page-head">
+        <button class="icon-btn back" data-go="home" aria-label="Back"></button>
+        <h2 class="hand">Play a friend</h2>
+      </header>
+      <div class="page-body">
+        <div class="field">
+          <label class="label hand" for="nick">Your nickname</label>
+          <input id="nick" class="text-in" maxlength="16" autocomplete="off" placeholder="e.g. Kofi B">
+          <small class="hint-s">Kept on this phone only. No accounts, no real names needed.</small>
+        </div>
+        <div class="field">
+          <span class="label hand">You play as</span>
+          <div class="seg" id="ol-team-seg">
+            <button data-team="forest">Forest Friends</button>
+            <button data-team="market">Market Crew</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label hand">Turn timer</span>
+          <div class="seg" id="ol-timer-seg">
+            <button data-timer="0">Off</button>
+            <button data-timer="30">30 s</button>
+            <button data-timer="60">60 s</button>
+          </div>
+        </div>
+        <button class="sketch-btn big" id="ol-create-btn">Create a room</button>
+        <p class="or hand">— or join a friend’s room —</p>
+        <div class="join-row">
+          <input id="ol-code" class="text-in code-in" maxlength="7" placeholder="ABC123" autocapitalize="characters" autocomplete="off" aria-label="Room code">
+          <button class="sketch-btn" id="ol-join-btn">Join</button>
+        </div>
+        <p class="ol-msg hand" id="ol-msg" role="status"></p>
+      </div>
     </section>
 
     <!-- HOW TO PLAY -->
@@ -149,6 +201,8 @@
       </div>
     </section>
   </main>
+
+  <div class="net-banner" id="net-banner" role="status" hidden><span id="net-text"></span><button class="chip" id="net-action" hidden></button></div>
 
   <!-- MODAL -->
   <div class="modal" id="modal" hidden>

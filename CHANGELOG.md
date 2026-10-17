@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 — Play a friend online
+
+- "Play a friend online": create a room with a 6-letter code and share the invite link (Web Share, or copy). Opening the link joins the match.
+- Only moves travel over Supabase Realtime, a couple of bytes each, and both phones check every move with the rules module.
+- Resign, rematch (the other side starts), resume after a dropped connection or reload, optional 30 s / 60 s turn timer, rooms close after 2 hours.
+- Clear banners when your connection drops or your friend's does, with a "claim the win" option if they don't come back.
+- Chat: speech bubbles over the sender's character and a small log. Quick phrases (Ei!, Chale!, You try!, Akwaaba, Good game…), emoji, or up to 80 characters of text, rate-limited and filtered, with mute and report.
+- No accounts: a nickname kept on the phone.
+- `supabase/schema.sql` with locked-down tables and functions; README setup steps.
+
 ## 1.1.0 — Look and fixes
 
 - Five board palettes in Settings (green pencil, blue ink, sepia kente, pink purple, high contrast), remembered on the device.

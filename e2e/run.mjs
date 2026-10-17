@@ -34,7 +34,7 @@ function check(name, ok, detail = '') {
 
 async function phone({ nick = 'Tester', team = 'forest', w = 390, h = 844, settings = {} } = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true, serviceWorkers: 'block' });
-  await ctx.route('**/js/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: `export const SUPABASE_URL='${mock.url}';export const SUPABASE_ANON_KEY='anon-test';export const onlineConfigured=()=>true;` }));
+  await ctx.route('**/js/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: `export const SUPABASE_URL='${mock.url}';export const SUPABASE_ANON_KEY='anon-test';export const VAPID_PUBLIC_KEY='';export const onlineConfigured=()=>true;` }));
   await ctx.addInitScript(([n, t, s]) => {
     if (!sessionStorage.getItem('seeded')) {
       localStorage.setItem('dame.profile.v1', JSON.stringify({ nick: n }));
@@ -225,6 +225,76 @@ async function playPlies(host, guest, n) {
   await guest.waitForFunction(() => window.dame?.game?.mode === 'online' && !window.dame.game.busy && dame.game.log.length === 3, null, { timeout: 25000 });
   check('online without the database: a reloaded phone catches up from the other', await sameBoard(host, guest));
   mock.dbDown(false);
+  await host.context().close(); await guest.context().close();
+}
+
+// ---------------------------------------------------------------- play over days
+{
+  const poke = (p) => p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  const host = await phone({ nick: 'Abena', team: 'forest' });
+  const guest = await phone({ nick: 'Yaw', team: 'forest', w: 375, h: 667 });
+  await host.goto(BASE); await host.click('#home'); await host.click('#friend-btn');
+  await host.click('[data-olmode=days]');
+  await host.click('#ol-create-btn');
+  await host.waitForSelector('.code-big', { timeout: 15000 });
+  const id = (await host.textContent('.code-big')).trim();
+  check('over days: a game gets an 8-character code and a link', /^[A-HJKMNP-Z2-9]{8}$/.test(id) && host.url().includes(`?days=${id}`), id);
+  await host.click('[data-act=close]');
+  await idle(host);
+  let [f, t] = await host.evaluate(() => [dame.game.moves[0].from, dame.game.moves[0].to]);
+  await move(host, f, t);
+  await host.waitForFunction(() => dame.game.log.length === 1 && !document.querySelector('#days-bar').hidden, null, { timeout: 15000 });
+  check('over days: after moving, the host is offered a share / WhatsApp nudge', await host.evaluate(() => !!document.querySelector('#days-bar [data-days=share]') && !!document.querySelector('#days-bar a[href^="https://wa.me/"]')));
+  check('over days: a clear message where notifications aren’t available', await host.evaluate(() => document.querySelector('#days-bar .push-note')?.textContent.length > 20), await host.evaluate(() => document.querySelector('#days-bar .push-note')?.textContent));
+
+  await guest.goto(`${BASE}?days=${id}`);
+  await guest.waitForSelector('[data-act=join]', { timeout: 15000 });
+  await guest.click('[data-act=join]');
+  await guest.waitForFunction(() => dame.game?.mode === 'days' && !dame.game.busy && dame.game.log.length === 1, null, { timeout: 15000 });
+  check('over days: the friend joins from the link and sees the first move', await guest.evaluate(() => dame.game.localSide === -1 && dame.game.flip));
+  [f, t] = await guest.evaluate(() => [dame.game.moves[0].from, dame.game.moves[0].to]);
+  await move(guest, f, t);
+  await guest.waitForFunction(() => dame.game.log.length === 2 && !dame.game.busy, null, { timeout: 15000 });
+  await poke(host);
+  await host.waitForFunction(() => dame.game.log.length === 2 && !dame.game.busy, null, { timeout: 15000 });
+  check('over days: the host picks up the reply when they come back', await sameBoard(host, guest));
+
+  // a move made with no signal is kept on the phone and sent later
+  [f, t] = await host.evaluate(() => [dame.game.moves[0].from, dame.game.moves[0].to]);
+  await host.context().setOffline(true);
+  await move(host, f, t);
+  await host.waitForFunction(() => JSON.parse(localStorage.getItem('dame.days.v1')).pending.length === 1, null, { timeout: 10000 });
+  check('over days: offline, the move is saved on the phone', await host.evaluate(() => /saved|signal/i.test(document.querySelector('#days-bar').textContent)));
+  await host.context().setOffline(false);
+  await host.evaluate(() => window.dispatchEvent(new Event('online')));
+  await host.waitForFunction(() => JSON.parse(localStorage.getItem('dame.days.v1')).pending.length === 0, null, { timeout: 15000 });
+  await poke(guest);
+  await guest.waitForFunction(() => dame.game.log.length === 3 && !dame.game.busy, null, { timeout: 15000 });
+  check('over days: back online, the saved move reaches the friend', await sameBoard(host, guest));
+
+  // My games
+  await guest.click('#menu-btn'); await guest.click('[data-act=leave]');
+  await guest.waitForSelector('#games-list .game-row', { timeout: 10000 });
+  const rowText = await guest.textContent('#games-list li');
+  check('My games: lists the game and whose turn it is', /Abena/.test(rowText) && /Your turn/.test(rowText), rowText.replace(/\s+/g, ' ').trim());
+  await guest.click('#games-list .game-row');
+  await guest.waitForFunction(() => dame.game?.mode === 'days' && !dame.game.busy, null, { timeout: 15000 });
+
+  // nobody else can take a seat
+  const third = await phone({ nick: 'Esi' });
+  await third.goto(`${BASE}?days=${id}`);
+  await third.waitForFunction(() => /two players/.test(document.querySelector('#ol-msg')?.textContent || ''), null, { timeout: 15000 });
+  check('over days: a third person can’t join', true);
+  await third.context().close();
+
+  // 14 days without a move: the player to move forfeits
+  await mock.pg.query(`update dame_days_games set last_move_at = now() - interval '15 days' where id = $1`, [id]);
+  await guest.reload();
+  const fTitle = await modalTitle(guest);
+  const fLine = await guest.textContent('#sheet p');
+  check('over days: after 14 quiet days the player to move forfeits, with a clear message', /wins/i.test(fTitle) && /14 days/.test(fLine), `${fTitle} / ${fLine.trim()}`);
+  const stored = await mock.pg.query('select result from dame_days_games where id = $1', [id]);
+  check('over days: the forfeit is recorded in the database', /^1:forfeit$/.test(stored.rows[0].result), stored.rows[0].result);
   await host.context().close(); await guest.context().close();
 }
 

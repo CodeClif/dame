@@ -114,3 +114,49 @@ export class RateLimiter {
     return true;
   }
 }
+
+// ---------- play over days ----------
+
+export const DAYS_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+
+export function makeGameId(rand = Math.random) {
+  let id = '';
+  for (let i = 0; i < 8; i++) id += CODE_CHARS[Math.floor(rand() * CODE_CHARS.length)];
+  return id;
+}
+
+export function normalizeGameId(s) {
+  const id = String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return id.length === 8 && [...id].every((ch) => CODE_CHARS.includes(ch)) ? id : null;
+}
+
+/** A long random secret for a seat (kept on the phone; the server stores only its hash). */
+export function makeSeatToken(cryptoObj = globalThis.crypto) {
+  const bytes = new Uint8Array(18);
+  cryptoObj.getRandomValues(bytes);
+  return [...bytes].map((b) => b.toString(36).padStart(2, '0')).join('').slice(0, 28);
+}
+
+/** Whose turn it is after `plies` moves when `firstTurn` started (every move passes the turn). */
+export const turnAfter = (firstTurn, plies) => (plies % 2 === 0 ? firstTurn : -firstTurn);
+
+/** Whole days left before a quiet game ends (0 once it has). */
+export function daysLeft(lastMoveAt, now = Date.now()) {
+  return Math.max(0, Math.ceil((Date.parse(lastMoveAt) + DAYS_TTL_MS - now) / 86400000));
+}
+
+/** "2 days ago", "3 hours ago", "just now". */
+export function timeAgo(when, now = Date.now()) {
+  const s = Math.max(0, (now - Date.parse(when)) / 1000);
+  if (s < 90) return 'just now';
+  if (s < 5400) return `${Math.round(s / 60)} min ago`;
+  if (s < 129600) return `${Math.round(s / 3600)} h ago`;
+  const d = Math.round(s / 86400);
+  return `${d} day${d === 1 ? '' : 's'} ago`;
+}
+
+/** Parse a stored result like "1:resign" into { winner, reason }. */
+export function parseResult(r) {
+  const m = /^(-?1|0):([a-z-]+)$/.exec(String(r || ''));
+  return m ? { winner: Number(m[1]), reason: m[2] } : null;
+}

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0 — Play over days
+
+- "Over days" mode on the Play-a-friend screen: start a game, move, and share the link. The friend replies whenever they like; the game is stored in Supabase.
+- After each move: a "tell them it's their turn" share button and a WhatsApp link. Optional "your turn" push notifications (Edge Function + service worker), with a clear message where the browser can't do them (e.g. iPhone Safari outside a Home Screen app).
+- Moves made without signal are saved on the phone and sent when the connection returns.
+- "My games": every game this phone plays, whose turn it is, time since the last move and days left. A badge on the menu shows how many are waiting for you.
+- Games end after 14 days without a move; the player to move forfeits, with a clear message.
+- Seats are protected by a random secret kept on each phone (only its hash is stored); only the player to move can move.
+- End-to-end tests for all of the above (50 checks).
+
 ## 1.4.0 — Solid foundations
 
 - Full end-to-end test script (`npm run e2e`, 39 checks): forced captures, multi-jumps, crowning, both rule toggles, draws, no-moves-left, vs-computer and undo, online resign, reload/resume, rematch, a connection dropped mid-move, play with the database down, and the database's security rules.

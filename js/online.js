@@ -65,15 +65,64 @@ export function init(theApi) {
     api.sfx.tap();
     paintSetup();
   });
-  $('#ol-create-btn').addEventListener('click', createRoom);
-  $('#ol-join-btn').addEventListener('click', () => joinRoom($('#ol-code').value));
-  $('#ol-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom($('#ol-code').value); });
+  $('#ol-mode-seg').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-olmode]');
+    if (!b) return;
+    olMode = b.dataset.olmode;
+    api.sfx.tap();
+    paintSetup();
+  });
+  $('#ol-create-btn').addEventListener('click', () => (olMode === 'days' ? createDays() : createRoom()));
+  $('#ol-join-btn').addEventListener('click', () => joinAny($('#ol-code').value));
+  $('#ol-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinAny($('#ol-code').value); });
   $('#nick').addEventListener('change', () => setNick($('#nick').value));
   setupChat();
   window.addEventListener('offline', () => { if (S) banner('You’re offline — moves will send when the signal comes back.'); });
 }
 
+// Live rooms (6-letter codes) or games over days (8-letter codes).
+let olMode = 'live';
+
+async function createDays() {
+  api.sfx.tap();
+  msg('Starting your game…');
+  const m = await api.days();
+  const r = await m.createGame($('#nick').value);
+  msg(r.error || '');
+}
+
+async function joinAny(raw) {
+  const clean = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (clean.length !== 8) { joinRoom(raw); return; }
+  msg('Looking for the game…');
+  const m = await api.days();
+  const r = await m.openGame(clean);
+  if (r.error) { msg(r.error); return; }
+  if (r.join) {
+    msg('');
+    const row = r.join;
+    api.openModal(`<h2>Join ${esc(row.host_nick)}’s game?</h2>
+      <p>A game played over days: move whenever you like. ${esc(row.host_nick)} plays the ${row.options?.ht === 'market' ? 'Market Crew' : 'Forest Friends'}, you get the other side.</p>
+      <div class="actions"><button class="sketch-btn big" data-act="join">Join the game</button>
+      <button class="sketch-btn" data-act="close">Not now</button></div>`, {
+      join: async () => {
+        api.closeModal();
+        const j = await m.joinGame(row, $('#nick').value);
+        if (j.error) msg(j.error);
+      },
+    });
+    return;
+  }
+  msg('');
+}
+
 function paintSetup() {
+  $$('#ol-mode-seg button').forEach((b) => b.classList.toggle('on', b.dataset.olmode === olMode));
+  $('#ol-timer-field').hidden = olMode === 'days';
+  $('#ol-create-btn').textContent = olMode === 'days' ? 'Start a game over days' : 'Create a room';
+  $('#ol-mode-hint').textContent = olMode === 'days'
+    ? 'Take turns whenever you like — great on slow data. Your friend gets a link; each move waits up to 14 days.'
+    : 'Play together right now, both online at the same time.';
   $$('#ol-team-seg button').forEach((b) => b.classList.toggle('on', b.dataset.team === api.settings.team));
   $$('#ol-timer-seg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.timer) === store.timer));
 }
@@ -81,14 +130,15 @@ function paintSetup() {
 function msg(text) { $('#ol-msg').textContent = text; }
 
 /** Show the Play-a-friend screen, optionally with a room code from an invite link. */
-export function open(code = '') {
+export function open(code = '', mode = 'live') {
   api.go('online');
+  olMode = mode;
   $('#nick').value = getNick();
-  $('#ol-code').value = normalizeRoomCode(code) || '';
+  $('#ol-code').value = normalizeRoomCode(code) || String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
   paintSetup();
   msg('');
   if (code) {
-    if (getNick()) joinRoom(code);
+    if (getNick()) joinAny(code);
     else { msg('Pick a nickname, then tap Join.'); $('#nick').focus(); }
   }
 }

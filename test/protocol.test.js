@@ -98,3 +98,38 @@ test('rate limiter blocks floods', () => {
   assert.ok(!rl.allow(4500));
   assert.ok(rl.allow(10100));
 });
+
+import { makeGameId, normalizeGameId, makeSeatToken, turnAfter, daysLeft, timeAgo, parseResult } from '../js/protocol.js';
+
+test('play-over-days ids are 8 unambiguous characters and seat tokens are long', () => {
+  for (let i = 0; i < 100; i++) {
+    const id = makeGameId();
+    assert.match(id, /^[A-HJKMNP-Z2-9]{8}$/);
+    assert.equal(normalizeGameId(id.toLowerCase()), id);
+  }
+  assert.equal(normalizeGameId('ABC123'), null);
+  const t = makeSeatToken();
+  assert.ok(t.length >= 24);
+  assert.notEqual(t, makeSeatToken());
+});
+
+test('turns alternate from whoever started', () => {
+  assert.equal(turnAfter(1, 0), 1);
+  assert.equal(turnAfter(1, 3), -1);
+  assert.equal(turnAfter(-1, 2), -1);
+});
+
+test('quiet games run out after 14 days', () => {
+  const now = Date.parse('2026-10-20T12:00:00Z');
+  assert.equal(daysLeft('2026-10-20T11:00:00Z', now), 14);
+  assert.equal(daysLeft('2026-10-10T12:00:00Z', now), 4);
+  assert.equal(daysLeft('2026-10-01T12:00:00Z', now), 0);
+  assert.equal(timeAgo('2026-10-18T12:00:00Z', now), '2 days ago');
+  assert.equal(timeAgo('2026-10-20T11:59:30Z', now), 'just now');
+});
+
+test('stored results parse back', () => {
+  assert.deepEqual(parseResult('-1:resign'), { winner: -1, reason: 'resign' });
+  assert.deepEqual(parseResult('0:quiet'), { winner: 0, reason: 'quiet' });
+  assert.equal(parseResult('junk'), null);
+});

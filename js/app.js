@@ -15,6 +15,8 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const otherTeam = (t) => (t === 'forest' ? 'market' : 'forest');
+// Modes played against a person on another phone: live rooms and games over days.
+const NET = new Set(['online', 'days']);
 
 // ---------- settings (kept in localStorage when available) ----------
 
@@ -297,14 +299,14 @@ function newGame(config) {
     level: config.level,
     opts: config.opts || { flyingKings: settings.flyingKings, menCaptureBackward: settings.menCaptureBackward },
     teams: config.teams,
-    human: config.mode === 'online'
+    human: NET.has(config.mode)
       ? { [config.localSide]: true, [-config.localSide]: false }
       : { 1: true, [-1]: config.mode === 'pnp' },
     turnSeconds: config.turnSeconds || 0,
     puzzle: config.puzzle ? { ...config.puzzle, used: 0 } : null,
     timeline: [], // { snap, move } for the replay clip
     localSide: config.localSide || 1,
-    flip: config.mode === 'online' && config.localSide === -1,
+    flip: NET.has(config.mode) && config.localSide === -1,
     online: config.online || null, // the online controller, when playing a friend
     log: [], // encoded moves, in order
     state: config.startRows ? R.stateFromRows(config.startRows, config.firstTurn ?? 1) : R.createInitialState(config.firstTurn),
@@ -427,7 +429,7 @@ function renderPieces(intro = false) {
 function sideLabel(side) {
   if (G.mode === 'cpu') return side === 1 ? 'You' : 'Computer';
   if (G.mode === 'puzzle') return side === 1 ? 'You' : `Puzzle #${G.puzzle.day}`;
-  if (G.mode === 'online') return side === G.localSide ? 'You' : (G.config.names?.[side] || 'Friend');
+  if (NET.has(G.mode)) return side === G.localSide ? 'You' : (G.config.names?.[side] || 'Friend');
   return side === 1 ? 'Player 1' : 'Player 2';
 }
 
@@ -435,7 +437,7 @@ function renderBars() {
   for (const side of [1, -1]) {
     const bar = barFor(side);
     const team = TEAMS[G.teams[side]];
-    let sub = G.mode === 'cpu' && side === -1 ? `${team.short} · ${G.level}` : G.mode === 'online' ? team.short : team.name;
+    let sub = G.mode === 'cpu' && side === -1 ? `${team.short} · ${G.level}` : NET.has(G.mode) ? team.short : team.name;
     if (G.mode === 'puzzle') sub = side === 1 ? `win in ${G.puzzle.par}` : G.puzzle.title;
     bar.innerHTML = `<span class="avatar char">${characterSVG(G.config.lineups[side][0])}</span>
       <span class="who">${sideLabel(side)}</span>
@@ -645,7 +647,7 @@ function remoteMove(code, ply, catchUp = false) {
   drainRemote();
 }
 function drainRemote() {
-  if (!G || G.mode !== 'online' || G.busy || G.over) return;
+  if (!G || !NET.has(G.mode) || G.busy || G.over) return;
   while (remoteQueue.length) {
     const { code, ply, catchUp } = remoteQueue.shift();
     if (ply < G.log.length) continue; // already have it
@@ -901,7 +903,7 @@ async function performMove(move, remote = false) {
   G.ids[move.to] = id;
   G.lastMove = move;
   G.log.push(encodeMove(move));
-  if (G.mode === 'online' && !remote) G.online?.localMove(G.log[G.log.length - 1], G.log.length - 1);
+  if (NET.has(G.mode) && !remote) G.online?.localMove(G.log[G.log.length - 1], G.log.length - 1);
   if (G.puzzle && side === 1) G.puzzle.used++;
   el.style.zIndex = '';
   drawTrail();
@@ -968,12 +970,13 @@ $('#hint-btn').addEventListener('click', async () => {
 
 $('#menu-btn').addEventListener('click', () => {
   sfx.tap();
-  if (G?.mode === 'online') {
-    openModal(`<h2>Paused</h2><p class="hand">Your friend can still see the board.</p>
+  if (NET.has(G?.mode)) {
+    const days = G.mode === 'days';
+    openModal(`<h2>Paused</h2><p class="hand">${days ? 'The game waits for you — come back any time.' : 'Your friend can still see the board.'}</p>
       <div class="actions">
         <button class="sketch-btn big" data-act="close">Back to the game</button>
         <button class="sketch-btn" data-act="resign"${G.over ? ' disabled' : ''}>Resign this game</button>
-        <button class="sketch-btn" data-act="leave">Leave the room</button>
+        <button class="sketch-btn" data-act="leave">${days ? 'My games' : 'Leave the room'}</button>
       </div>`, {
       resign: () => { closeModal(); G.online?.resign(); },
       leave: () => { closeModal(); G.online?.leave(); },
@@ -1010,13 +1013,13 @@ function endGame(result) {
   const humanWon = G.mode === 'pnp' || G.human[winner];
   // Streaks, unlocks and leaderboard points (cosmetic only; no stakes, no prizes).
   let notes = '';
-  if (G.mode === 'cpu' || G.mode === 'online') {
+  if (G.mode === 'cpu' || NET.has(G.mode)) {
     const r = recordGame(progress, winner ? !!G.human[winner] : null);
     progress = r.progress;
     saveProgress();
     notes = unlockNotes(r.unlocked);
     if (G.mode === 'cpu' && winner === 1) award(`cpu-${G.level}`);
-    if (G.mode === 'online') award(winner === G.localSide ? 'online-win' : 'online-play');
+    if (NET.has(G.mode)) award(winner === G.localSide ? 'online-win' : 'online-play');
   }
   const clip = clipButton();
   if (winner) {
@@ -1034,7 +1037,7 @@ function endGame(result) {
     const team = TEAMS[G.teams[winner]].name;
     const you = sideLabel(loser) === 'You';
     if (G.mode === 'cpu') title = humanWon ? 'You win! Ayekoo!' : 'The computer wins';
-    else if (G.mode === 'online') title = humanWon ? 'You win! Ayekoo!' : `${sideLabel(winner)} wins`;
+    else if (NET.has(G.mode)) title = humanWon ? 'You win! Ayekoo!' : `${sideLabel(winner)} wins`;
     else title = `${sideLabel(winner)} wins!`;
     const reasons = {
       'no-pieces': `The ${team} took every last piece.`,
@@ -1042,19 +1045,21 @@ function endGame(result) {
       resign: `${sideLabel(loser)} resigned. Good game!`,
       left: `${sideLabel(loser)} left the game.`,
       timeout: `${sideLabel(loser)} ran out of time.`,
+      forfeit: `${sideLabel(loser)} didn’t move for 14 days, so the ${team} win by forfeit.`,
     };
     line = reasons[reason] || reasons.blocked;
   }
   const party = winner
     ? [...new Set(G.config.lineups[winner])].slice(0, 4).map((k) => `<div class="piece char cheer dance"><div class="hopper">${characterSVG(k)}</div></div>`).join('')
     : `<div class="piece char dance"><div class="hopper">${characterSVG(G.config.lineups[1][0])}</div></div><div class="piece char dance"><div class="hopper">${characterSVG(G.config.lineups[-1][0])}</div></div>`;
+  const labels = G.online?.menuLabels || { rematch: 'Ask for a rematch', leave: 'Leave the room' };
   const onlineActions = `<div class="actions">
-        <button class="sketch-btn big" data-act="orematch">Ask for a rematch</button>
-        <button class="sketch-btn" data-act="leave">Leave the room</button>
+        <button class="sketch-btn big" data-act="orematch">${labels.rematch}</button>
+        <button class="sketch-btn" data-act="leave">${labels.leave}</button>
       </div>`;
   setTimeout(() => {
     if (G.token !== endToken || !G.over) return; // the game was restarted meanwhile
-    if (G.mode === 'online') {
+    if (NET.has(G.mode)) {
       openModal(`<h2>${title}</h2><div class="party">${party}</div><p>${line}</p>${notes}${onlineActions.replace('</div>', `${clip}</div>`)}
         <div class="ad-slot" role="note" aria-label="Advertisement placeholder"><b>Ad space</b> · banner 320×50</div>`, {
         orematch: () => { G.online?.requestRematch(); },
@@ -1321,6 +1326,14 @@ $('#leaders-btn').addEventListener('click', async () => {
   sfx.tap();
   (await import('./leaderboard.js')).open(api);
 });
+let daysModule = null;
+async function days() {
+  daysModule ||= import('./days.js').then((m) => { m.init(api); return m; });
+  return daysModule;
+}
+api.days = days;
+$('#games-btn').addEventListener('click', async () => { sfx.tap(); (await days()).openMyGames(); });
+$('#games-new').addEventListener('click', async () => { sfx.tap(); (await online()).open('', 'days'); });
 $('#friend-btn').addEventListener('click', async () => {
   sfx.tap();
   (await online()).open();
@@ -1359,6 +1372,17 @@ renderDoodles();
 renderHome();
 $('#friend-btn').hidden = !onlineConfigured();
 $('#leaders-btn').hidden = !onlineConfigured();
+$('#games-btn').hidden = !onlineConfigured();
+// A badge on "My games" when friends are waiting for your move.
+if (onlineConfigured() && localStorage.getItem('dame.days.v1')) {
+  days().then((m) => m.yourTurnCount()).then((n) => { if (n) $('#games-btn').innerHTML = `My games <small>${n} your turn</small>`; }).catch(() => {});
+}
+// A play-over-days link (?days=ID) opens that game.
+if (new URLSearchParams(location.search).has('days')) {
+  count('invite_open', { once: true });
+  document.body.classList.add('skip-intro');
+  online().then((m) => m.open(new URLSearchParams(location.search).get('days'), 'days'));
+}
 refreshPuzzleButton();
 // App shortcuts from the home-screen icon.
 {

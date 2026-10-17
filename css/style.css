@@ -599,3 +599,28 @@ body.doc { overflow: auto; user-select: text; -webkit-user-select: text; }
 .install > b { font-size: 25px; display: block; }
 .install p { margin: 2px 0 8px; font-size: 16px; color: var(--muted); }
 .hint-s a { color: var(--pen); }
+
+/* ---------- play over days ---------- */
+#ol-mode-seg { margin-bottom: 4px; }
+#ol-mode-hint { margin: 0 0 10px; }
+.days-bar { width: 100%; max-width: 560px; z-index: 1; padding: 6px 8px; margin: 2px 0; border: 2px dashed var(--pen); border-radius: 14px 10px 16px 12px; background: var(--card); }
+.days-bar[hidden] { display: none; }
+.days-bar p { margin: 0 0 4px; font-size: 19px; line-height: 1.15; }
+.days-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.days-actions .chip { min-height: 34px; font-size: 16px; text-decoration: none; display: inline-flex; align-items: center; }
+.days-actions .chip.wa { background: #d8f5d0; color: #2b2622; }
+.push-note { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.25; }
+body[data-play=days] .game-ad { display: none; }
+body[data-play=days] #undo-btn, body[data-play=days] #hint-btn { display: none; }
+.games-list { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.games-list li { display: flex; gap: 6px; align-items: stretch; }
+.games-list li.empty { display: block; color: var(--muted); font-size: 21px; }
+.game-row { flex: 1; text-align: left; border: 2px solid var(--ink); border-radius: var(--rough); background: var(--card); padding: 8px 12px; display: grid; gap: 1px; }
+.game-row b { font-family: var(--hand); font-size: 24px; }
+.game-row .st { font-family: var(--hand); font-size: 20px; color: var(--pen); }
+.game-row .meta { font-size: 13px; color: var(--muted); }
+.games-list li.mine .game-row { background: var(--hi); box-shadow: inset 0 0 0 2px var(--red); }
+.games-list li.mine .st { color: var(--red); font-weight: 700; }
+.games-list li.done .game-row { opacity: .7; }
+.menu-row.two { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+.menu-row.two .sketch-btn { font-size: 19px; padding: 6px 2px; }

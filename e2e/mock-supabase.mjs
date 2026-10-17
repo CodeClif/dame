@@ -38,7 +38,7 @@ export async function startMock({ port = 54321, schema = new URL('../supabase/sc
     try {
       const r = await pg.query(
         `select public.${m[1]}(${names.map((n, i) => `${n} => $${i + 1}`).join(', ')}) as v`,
-        names.map((n) => (typeof args[n] === 'object' && args[n] !== null ? JSON.stringify(args[n]) : args[n])),
+        names.map((n) => (Array.isArray(args[n]) ? args[n] : typeof args[n] === 'object' && args[n] !== null ? JSON.stringify(args[n]) : args[n])),
       );
       res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
       res.end(JSON.stringify(r.rows[0].v));

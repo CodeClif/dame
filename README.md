@@ -63,6 +63,19 @@ Online play, chat reports and (later) leaderboards use a free Supabase project. 
 4. **Keys:** in Project Settings → API copy the *Project URL* and the *anon public* key into [`js/config.js`](js/config.js). **Never** use the `service_role` key in the site: `config.js` is public.
 5. Commit, bump `VERSION` in `sw.js`, push. The button appears on the menu.
 
+### Play over days
+
+A turn-based game for slow data. The creator gets an 8-letter code and a `?days=CODE` link to share; whoever opens it first takes the free seat. Each seat has a random secret kept on that phone (`localStorage`); the server stores only its SHA-256 hash, accepts a move only from the player whose turn it is, and refuses moves after 14 quiet days (the player to move forfeits). A move made with no signal is saved on the phone and sent automatically when the connection returns. Games are deleted 30 days after their last move by the retention job.
+
+"Your turn" notifications are optional:
+
+1. Generate VAPID keys once: `npx web-push generate-vapid-keys`.
+2. Put the **public** key in `js/config.js` (`VAPID_PUBLIC_KEY`).
+3. In Supabase → Edge Functions → Secrets, set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (your site URL).
+4. Deploy the function: `supabase functions deploy dame-notify --no-verify-jwt` (it checks the player's seat secret itself).
+
+Where push isn't available (iPhone Safari outside a Home Screen app, older browsers, notifications blocked, or VAPID not configured) the game says so and offers the share/WhatsApp nudge instead.
+
 ### Leaderboards
 
 Players pick a nickname and a group in **Leaderboard**. Groups come from [`data/groups.json`](data/groups.json): edit the list freely (ids are lowercase letters, numbers and dashes). Points: computer win easy 1 / medium 2 / hard 3, online win 3, finished online game 1, daily puzzle 2 (once a day). Weeks start on Monday (UTC). The database checks the points, limits floods per nickname and stores nothing but nickname, group and points. It can't stop someone faking scores from a modified browser; it is a friendly board with no prizes.
@@ -87,6 +100,8 @@ All tables have row level security on with **no policies**, so the anon key can'
 | --- | --- | --- |
 | `dame_rooms` | room `code`, `created_at`, `expires_at` (2 hours), host `options` (rules, timer, host team), `game` number, `first_turn`, `moves` (compact move codes), `result` | `dame_create_room`, `dame_push_move`, `dame_new_game`, `dame_finish`; read by `dame_get_room` |
 | `dame_reports` | room code, reported nickname, the reported message | `dame_report` (max 20 per room) |
+| `dame_days_games` | game `id`, `options`, both nicknames and line-ups, hashed seat secrets, `first_turn`, `moves`, `last_move_at`, `result` | `dame_days_create`, `dame_days_join`, `dame_days_move`, `dame_days_finish`; read by `dame_days_get`, `dame_days_list` (never returns the secrets) |
+| `dame_push_subs` | push address and keys per game seat (opt-in), deleted when the game ends | `dame_days_subscribe` / `dame_days_unsubscribe`; read only by the `dame-notify` Edge Function |
 | `dame_event_counts` | `day`, `event`, `n` (a daily total) | `dame_count` |
 | `dame_scores` | `week`, `nickname`, `group_id`, `points`, `reason` | `dame_add_points`; read by `dame_leaderboard` (top 20 players and groups this week) |
 
@@ -135,6 +150,8 @@ Cosmetic only. Owl (3 wins in a row) and kenkey seller (5 in a row) come from wi
 | `tools/make-puzzles.mjs` | Generates verified puzzles. |
 | `supabase/schema.sql` | Everything Supabase needs. |
 | `js/analytics.js` | Anonymous daily counts. |
+| `js/days.js`, `js/push.js` | Play over days, My games, offline move queue, "your turn" notifications. |
+| `supabase/functions/dame-notify/` | Edge Function that sends the "your turn" push. |
 | `privacy.html`, `terms.html` | Plain-language privacy page and terms. |
 | `e2e/` | Browser end-to-end tests and the local Supabase stand-in. |
 | `sw.js` | Offline cache. |

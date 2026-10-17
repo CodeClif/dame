@@ -195,9 +195,172 @@ grant execute on function public.dame_count(text) to anon, authenticated;
 -- ===================================================================== retention job
 -- Run once after enabling pg_cron. Deletes what privacy.html promises to delete:
 --   rooms a day after they close, reports after 90 days, scores after 12 weeks,
---   play-over-days games 14 days after their last move (Phase 5).
+--   play-over-days games 30 days after their last move (they end after 14).
 -- select cron.schedule('dame-retention', '17 3 * * *', $$
 --   delete from public.dame_rooms   where expires_at < now() - interval '1 day';
 --   delete from public.dame_reports where created_at < now() - interval '90 days';
 --   delete from public.dame_scores  where created_at < now() - interval '12 weeks';
+--   delete from public.dame_days_games where last_move_at < now() - interval '30 days';
 -- $$);
+
+-- ===================================================================== play over days
+-- Turn-based games that wait for each player. No accounts: each seat has a random secret
+-- token kept on that player's phone; the table stores only its SHA-256 hash.
+-- A game ends 14 days after its last move (the player to move forfeits) and is deleted
+-- 30 days after its last move by the retention job.
+
+create table if not exists public.dame_days_games (
+  id            text primary key check (id ~ '^[A-HJKMNP-Z2-9]{8}$'),
+  created_at    timestamptz not null default now(),
+  last_move_at  timestamptz not null default now(),
+  options       jsonb not null default '{}'::jsonb,
+  host_nick     text not null,
+  guest_nick    text,
+  host_lineup   text,
+  guest_lineup  text,
+  host_secret   text not null,
+  guest_secret  text,
+  first_turn    smallint not null default 1,
+  moves         text[] not null default '{}',
+  result        text
+);
+create index if not exists dame_days_last_move on public.dame_days_games (last_move_at);
+alter table public.dame_days_games enable row level security;
+drop policy if exists dame_days_games_no_direct_access on public.dame_days_games;
+create policy dame_days_games_no_direct_access on public.dame_days_games as restrictive for all to anon, authenticated using (false) with check (false);
+
+create or replace function public.dame_hash(p_token text)
+returns text language sql immutable set search_path = public as $$
+  select encode(sha256(convert_to(coalesce(p_token, ''), 'UTF8')), 'hex');
+$$;
+
+-- The public view of a game: never the secrets.
+create or replace function public.dame_days_view(g public.dame_days_games)
+returns jsonb language sql stable set search_path = public as $$
+  select jsonb_build_object(
+    'id', g.id, 'created_at', g.created_at, 'last_move_at', g.last_move_at,
+    'expires_at', g.last_move_at + interval '14 days',
+    'expired', g.result is null and g.last_move_at < now() - interval '14 days',
+    'options', g.options, 'host_nick', g.host_nick, 'guest_nick', g.guest_nick,
+    'host_lineup', g.host_lineup, 'guest_lineup', g.guest_lineup,
+    'first_turn', g.first_turn, 'moves', to_jsonb(g.moves), 'result', g.result,
+    'has_guest', g.guest_secret is not null);
+$$;
+
+create or replace function public.dame_days_create(p_id text, p_token text, p_nick text, p_lineup text, p_options jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare g dame_days_games;
+begin
+  if length(p_token) < 16 or p_nick !~ '^[^<>&"''\\]{2,16}$' or length(coalesce(p_lineup, '')) > 200 or length(p_options::text) > 300 then
+    raise exception 'bad input';
+  end if;
+  insert into dame_days_games (id, host_nick, host_lineup, host_secret, options)
+  values (p_id, p_nick, p_lineup, dame_hash(p_token), p_options) returning * into g;
+  return dame_days_view(g);
+end $$;
+
+create or replace function public.dame_days_get(p_id text)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select dame_days_view(g) from dame_days_games g where g.id = p_id;
+$$;
+
+-- Take the free seat. Returns 'h' or 'g' for a player who already holds a seat, 'full' otherwise.
+create or replace function public.dame_days_join(p_id text, p_token text, p_nick text, p_lineup text)
+returns text language plpgsql security definer set search_path = public as $$
+declare g dame_days_games; h text := dame_hash(p_token);
+begin
+  select * into g from dame_days_games where id = p_id for update;
+  if not found then return 'missing'; end if;
+  if g.host_secret = h then return 'h'; end if;
+  if g.guest_secret = h then return 'g'; end if;
+  if g.guest_secret is not null then return 'full'; end if;
+  if length(p_token) < 16 or p_nick !~ '^[^<>&"''\\]{2,16}$' or length(coalesce(p_lineup, '')) > 200 then return 'bad'; end if;
+  update dame_days_games set guest_secret = h, guest_nick = p_nick, guest_lineup = p_lineup where id = p_id;
+  return 'g';
+end $$;
+
+-- A move is accepted only from the player whose turn it is, as the next ply, before expiry.
+create or replace function public.dame_days_move(p_id text, p_token text, p_ply int, p_move text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare g dame_days_games; seat_side int; turn int;
+begin
+  if p_move !~ '^[A-Za-z0-9_-]{2,20}$' then return false; end if;
+  select * into g from dame_days_games where id = p_id for update;
+  if not found or g.result is not null or g.last_move_at < now() - interval '14 days' then return false; end if;
+  if cardinality(g.moves) <> p_ply or cardinality(g.moves) >= 500 then return false; end if;
+  seat_side := case dame_hash(p_token) when g.host_secret then 1 when g.guest_secret then -1 else 0 end;
+  turn := case when p_ply % 2 = 0 then g.first_turn else -g.first_turn end;
+  if seat_side = 0 or seat_side <> turn or g.guest_secret is null and seat_side = -1 then return false; end if;
+  update dame_days_games set moves = array_append(moves, p_move), last_move_at = now() where id = p_id;
+  return true;
+end $$;
+
+-- Record the end: a win on the board, a resignation, or a forfeit after 14 quiet days.
+create or replace function public.dame_days_finish(p_id text, p_token text, p_result text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare g dame_days_games; h text := dame_hash(p_token);
+begin
+  if p_result !~ '^(1|-1|0):[a-z-]{2,16}$' then return false; end if;
+  select * into g from dame_days_games where id = p_id for update;
+  if not found or g.result is not null then return false; end if;
+  if h is distinct from g.host_secret and h is distinct from g.guest_secret then return false; end if;
+  update dame_days_games set result = p_result where id = p_id;
+  delete from dame_push_subs where game_id = p_id;
+  return true;
+end $$;
+
+-- Summaries for the "My games" screen (up to 50 ids at a time).
+create or replace function public.dame_days_list(p_ids text[])
+returns jsonb language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(dame_days_view(g)), '[]'::jsonb)
+  from dame_days_games g where g.id = any (p_ids[1:50]);
+$$;
+
+-- ===================================================================== "your turn" push notifications
+-- Optional. A browser push subscription (an address at the browser's push service) per seat,
+-- deleted when the game ends.
+
+create table if not exists public.dame_push_subs (
+  game_id     text not null references public.dame_days_games (id) on delete cascade,
+  seat        text not null check (seat in ('h', 'g')),
+  endpoint    text not null,
+  p256dh      text not null,
+  auth        text not null,
+  created_at  timestamptz not null default now(),
+  primary key (game_id, seat)
+);
+alter table public.dame_push_subs enable row level security;
+drop policy if exists dame_push_subs_no_direct_access on public.dame_push_subs;
+create policy dame_push_subs_no_direct_access on public.dame_push_subs as restrictive for all to anon, authenticated using (false) with check (false);
+
+create or replace function public.dame_days_subscribe(p_id text, p_token text, p_endpoint text, p_p256dh text, p_auth text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare g dame_days_games; h text := dame_hash(p_token); s text;
+begin
+  if p_endpoint !~ '^https://' or length(p_endpoint) > 600 or length(p_p256dh) > 200 or length(p_auth) > 100 then return false; end if;
+  select * into g from dame_days_games where id = p_id;
+  if not found or g.result is not null then return false; end if;
+  s := case h when g.host_secret then 'h' when g.guest_secret then 'g' end;
+  if s is null then return false; end if;
+  insert into dame_push_subs (game_id, seat, endpoint, p256dh, auth) values (p_id, s, p_endpoint, p_p256dh, p_auth)
+  on conflict (game_id, seat) do update set endpoint = excluded.endpoint, p256dh = excluded.p256dh, auth = excluded.auth, created_at = now();
+  return true;
+end $$;
+
+create or replace function public.dame_days_unsubscribe(p_id text, p_token text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare g dame_days_games; h text := dame_hash(p_token);
+begin
+  select * into g from dame_days_games where id = p_id;
+  if not found then return false; end if;
+  delete from dame_push_subs where game_id = p_id and seat = case h when g.host_secret then 'h' when g.guest_secret then 'g' end;
+  return true;
+end $$;
+
+revoke all on public.dame_days_games, public.dame_push_subs from anon, authenticated;
+revoke all on function public.dame_days_view(public.dame_days_games) from public, anon, authenticated;
+grant execute on function
+  public.dame_days_create(text, text, text, text, jsonb), public.dame_days_get(text), public.dame_days_join(text, text, text, text),
+  public.dame_days_move(text, text, int, text), public.dame_days_finish(text, text, text), public.dame_days_list(text[]),
+  public.dame_days_subscribe(text, text, text, text, text), public.dame_days_unsubscribe(text, text)
+  to anon, authenticated;

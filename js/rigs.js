@@ -208,7 +208,7 @@ function context(el, from, to, victim, opts) {
   let at = 0;
   const running = [];
   return {
-    el, dir, victim,
+    el, dir, victim, fx: opts.fx,
     q: (name) => el.querySelector(`.p-${name}`),
     /** Slide the whole piece along its path, from where it is now to fraction f. */
     travel(f, ms, easing = 'ease-in-out') {
@@ -225,6 +225,57 @@ function context(el, from, to, victim, opts) {
     shout: (text, color) => shout(opts.fx, victim.r, victim.c, text, color),
     shake: (px = 3) => opts.board?.animate([{ transform: 'none' }, { transform: `translate(${-px}px, ${px * 0.6}px)` }, { transform: `translate(${px}px, ${-px * 0.6}px)` }, { transform: 'none' }], T(260)),
   };
+}
+
+// ---------- the spider's web line ----------
+
+/** A silk line shot from the spider's mouth to a piece, drawn in the effects layer. */
+function webLine(fx, from, to) {
+  const box = fx.getBoundingClientRect();
+  const a = from.getBoundingClientRect();
+  const b = to.getBoundingClientRect();
+  const [x1, y1] = [a.left + a.width / 2 - box.left, a.top + a.height * 0.3 - box.top];
+  const [x2, y2] = [b.left + b.width / 2 - box.left, b.top + b.height * 0.35 - box.top];
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:absolute;inset:0;pointer-events:none';
+  const d = `M${x1} ${y1}Q${(x1 + x2) / 2} ${Math.min(y1, y2) - a.height * 0.25} ${x2} ${y2}`;
+  holder.innerHTML = `<svg width="${box.width}" height="${box.height}" style="position:absolute;left:0;top:0;overflow:visible" aria-hidden="true">
+    <path d="${d}" pathLength="1" fill="none" stroke="${INK}" stroke-width="5" stroke-linecap="round" stroke-dasharray="1.02 1.02"/>
+    <path d="${d}" pathLength="1" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="1.02 1.02"/></svg>`;
+  fx.appendChild(holder);
+  for (const p of holder.querySelectorAll('path')) p.animate([{ strokeDashoffset: 1.02 }, { strokeDashoffset: 0 }], { duration: T(200), easing: 'ease-out', fill: 'forwards' });
+  return {
+    snap() {
+      holder.animate([{ opacity: 1 }, { opacity: 1, transform: 'translateY(-4px)', offset: 0.3 }, { opacity: 0, transform: 'translateY(6px)' }], { duration: T(320), fill: 'forwards' })
+        .finished.then(() => holder.remove(), () => holder.remove());
+    },
+  };
+}
+
+/** Wrap a piece in silk: strands drawn on over the character. */
+function cocoon(piece) {
+  const holder = piece.firstElementChild || piece;
+  holder.insertAdjacentHTML('beforeend', `<svg viewBox="0 -14 100 114" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible" aria-hidden="true">
+    <path d="M24 30L76 52M76 30L24 52M22 50L78 72M78 50L22 72M24 70L76 90M76 70L24 90M50 18V96M30 40Q50 30 70 40M28 62Q50 52 72 62M28 82Q50 74 72 82"
+      pathLength="1" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round" stroke-dasharray="1.02 1.02" stroke-dashoffset="1.02"/>
+    <path d="M24 30L76 52M76 30L24 52M22 50L78 72M78 50L22 72M24 70L76 90M76 70L24 90M50 18V96M30 40Q50 30 70 40M28 62Q50 52 72 62M28 82Q50 74 72 82"
+      pathLength="1" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-dasharray="1.02 1.02" stroke-dashoffset="1.02"/></svg>`);
+  for (const p of holder.lastElementChild.querySelectorAll('path')) p.animate([{ strokeDashoffset: 1.02 }, { strokeDashoffset: 0 }], { duration: T(380), easing: 'ease-out', fill: 'forwards' });
+}
+
+/** Yank a wrapped piece up and sling it right off the nearest side of the board. */
+function sling(victim, spider, fx) {
+  const cols = Math.max(1, Math.round(fx.clientWidth / spider.offsetWidth));
+  const side = victim.c < cols / 2 ? -1 : 1;
+  const out = side < 0 ? -(victim.c + 2) * 100 : (cols - victim.c + 1) * 100;
+  const base = `translate(calc(${victim.c} * 100%), calc(${victim.r} * 100%))`;
+  victim.el.style.zIndex = 60;
+  return victim.el.animate([
+    { transform: base },
+    { transform: `${base} translate(${-side * 10}%, -70%) rotate(${-side * 20}deg) scale(1.05)`, offset: 0.22 },
+    { transform: `${base} translate(${out * 0.55}%, -230%) rotate(${side * 400}deg) scale(.85)`, offset: 0.6 },
+    { transform: `${base} translate(${out}%, -40%) rotate(${side * 760}deg) scale(.6)`, opacity: 0 },
+  ], { duration: T(1000), easing: 'ease-in', fill: 'forwards' }).finished.then(() => victim.el.remove(), () => victim.el.remove());
 }
 
 // ---------- choreography ----------
@@ -507,22 +558,30 @@ const RIGS = {
       if (!m.victim) {
         await m.travel(1, 820, 'linear');
       } else {
-        // Scuttle up, rear back with the front legs high, and wrap the piece in a web.
-        await m.travel(0.3, 420, 'linear');
+        // Rear up, shoot a web line at the piece (THWIP!), wrap it, then yank and sling it off the board.
         m.stop();
         const rear = [
-          play(m.q('rig'), [{}, { y: -8, r: -m.dir * 8 }], 200),
-          play(m.q('leg-l0'), [{}, { r: 40 }], 200, { at: [38, 58] }),
-          play(m.q('leg-r0'), [{}, { r: -40 }], 200, { at: [62, 58] }),
-          play(m.q('leg-l1'), [{}, { r: 20 }], 200, { at: [37, 62] }),
-          play(m.q('leg-r1'), [{}, { r: -20 }], 200, { at: [63, 62] }),
+          play(m.q('rig'), [{}, { y: -10, r: -m.dir * 10 }], 220),
+          play(m.q('leg-l0'), [{}, { r: 40 }], 220, { at: [38, 58] }),
+          play(m.q('leg-r0'), [{}, { r: -40 }], 220, { at: [62, 58] }),
+          play(m.q('leg-l1'), [{}, { r: 20 }], 220, { at: [37, 62] }),
+          play(m.q('leg-r1'), [{}, { r: -20 }], 220, { at: [63, 62] }),
         ];
-        await wait(220);
-        const out = m.hit('web');
-        await wait(520);
+        await wait(240);
+        const line = webLine(m.fx, m.el, m.victim.el);
+        m.shout('THWIP!', '#4f74d0');
+        await wait(200);
+        cocoon(m.victim.el);
+        await wait(420);
+        // The yank: lean back hard, the line goes taut, and the piece flies.
         rear.forEach((a) => a.cancel());
+        const tug = play(m.q('rig'), [{ y: -10, r: -m.dir * 10 }, { y: -4, r: -m.dir * 22 }, { y: -6, r: -m.dir * 12 }], 300, { easing: 'ease-out' });
+        const out = sling(m.victim, m.el, m.fx);
+        line.snap();
+        await wait(380);
+        tug.cancel();
         legs();
-        await m.travel(1, 600, 'linear');
+        await m.travel(1, 820, 'linear');
         await out;
       }
       m.stop();

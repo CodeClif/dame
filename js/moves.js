@@ -1,5 +1,5 @@
 // Signature moves: how each character travels across the board, and the secret skill it
-// shows off when it captures (the crocodile's Jaw Snap, the spider's Web Wrap…).
+// shows off when it captures (the crocodile's Jaw Snap, the spider's Web Sling…).
 // Purely cosmetic — the rules never change. Effects are small hand-drawn SVGs that live
 // for under a second in the board's effects layer and then remove themselves.
 
@@ -10,7 +10,7 @@ export const SKILLS = {
   // Forest Friends
   tortoise: { name: 'Shell Spin', travel: 'roll', strike: 'spinout' },
   antelope: { name: 'Horn Toss', travel: 'leap', strike: 'toss' },
-  spider: { name: 'Web Wrap', travel: 'scuttle', strike: 'web' },
+  spider: { name: 'Web Sling', travel: 'scuttle', strike: 'web' },
   crocodile: { name: 'Jaw Snap', travel: 'slither', strike: 'chomp' },
   parrot: { name: 'Feather Flurry', travel: 'fly', strike: 'feathers' },
   bushcat: { name: 'Pounce Swipe', travel: 'pounce', strike: 'claws' },

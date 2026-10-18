@@ -1280,7 +1280,7 @@ function renderHowto() {
     : 'Kings move and capture one square at a time, but in any diagonal direction.'}
     A man who reaches the far side in the middle of a capture chain carries on capturing and is only crowned if he finishes there.</p>
     <h3>Signature moves ✨</h3>
-    <p>Every character has a secret skill they show off when they capture: the crocodile’s <b>Jaw Snap</b> chomps, the spider wraps pieces in a web, the fisherman casts a net, the tro-tro driver honks them off the board. They travel in their own way too — birds fly, the tortoise rolls, the elephant stomps. It’s all for fun: every character follows exactly the same rules. Switch it off in <b>Settings</b>.</p>
+    <p>Every character has a secret skill they show off when they capture: the crocodile’s <b>Jaw Snap</b> chomps, the spider shoots a web line and slings pieces off the board, the fisherman casts a net, the tro-tro driver honks them off the board. They travel in their own way too — birds fly, the tortoise rolls, the elephant stomps. It’s all for fun: every character follows exactly the same rules. Switch it off in <b>Settings</b>.</p>
     <h3>Draws</h3>
     <p>If 25 moves each go by with only kings moving and nothing captured, the game is a draw.</p>
     <h3>On this phone</h3>

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.1 — Spider's Web Sling
+
+- The spider's capture is now **Web Sling**: he rears up, shoots a silk line at the piece (THWIP!), wraps it up, then yanks and slings it right off the board before scuttling on.
+
 ## 1.9.0 — All the Forest Friends come alive
 
 - Moving parts for the rest of the Forest Friends:

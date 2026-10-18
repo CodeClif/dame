@@ -148,6 +148,8 @@ Each pack character has a one-line personality (`quip` in `js/characters.js`) us
 
 **Moving parts:** all the Forest Friends plus the waakye seller so far are drawn as separate parts in `js/rigs.js` (wings, legs, tail, jaws, load) and act out each move. Their look at rest matches `js/characters.js`. Try them on `lab.html`. Characters without a rig use the travel styles in `js/moves.js`.
 
+**Testers:** share https://codeclif.github.io/dame/test.html. Its game link adds `?tester`, which unlocks every character (except seasonal ones) for that browser session only.
+
 **Streak freeze:** every 5 days of puzzle streak earns a freeze (hold up to 2). Missing a single day spends one and the streak carries on.
 
 **Post-game recap:** after each game, 2–4 lines in the characters' voices — the best capture, a missed longer jump, the other side's longest chain, a crowning, and a parting word (`js/recap.js`, tested in `test/recap.test.js`).

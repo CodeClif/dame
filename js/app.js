@@ -49,8 +49,17 @@ let progress = emptyProgress();
 try { progress = { ...progress, ...JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}') }; } catch { /* defaults */ }
 function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch { /* ignore */ } }
 
+// Testers (from the link on test.html, ?tester) get every character for this visit. Nothing is saved.
+const TESTER = (() => {
+  try {
+    if (new URLSearchParams(location.search).has('tester')) sessionStorage.setItem('dame.tester', '1');
+    return sessionStorage.getItem('dame.tester') === '1';
+  } catch { return false; }
+})();
+const unlocked = (k) => (TESTER && !CHARACTERS[k]?.seasonal) || isUnlocked(k, progress);
+
 for (const t of ['forest', 'market']) {
-  settings.lineups[t] = settings.lineups[t].filter((k) => CHARACTERS[k]?.team === t && isUnlocked(k, progress));
+  settings.lineups[t] = settings.lineups[t].filter((k) => CHARACTERS[k]?.team === t && unlocked(k));
   if (!settings.lineups[t].length) settings.lineups[t] = [...BASE_ROSTER[t]];
 }
 function saveSettings() {
@@ -228,7 +237,7 @@ function renderLineup(el, team) {
   const chosen = settings.lineups[team];
   const card = (k) => {
     const ch = CHARACTERS[k];
-    if (!isUnlocked(k, progress)) {
+    if (!unlocked(k)) {
       const why = ch.seasonal ? `Coming: ${ch.seasonal}` : ch.unlock.text;
       return `<button class="card off sealed" data-char="${k}" data-why="${why}" aria-disabled="true" aria-label="${ch.name}, locked: ${why}">
         <span class="lock" aria-hidden="true">🔒 Locked</span>
@@ -241,10 +250,10 @@ function renderLineup(el, team) {
       <span class="pic char">${characterSVG(k, { withBase: false })}</span>
       <span class="nm">${ch.name}</span><span class="kd">${ch.kind}</span><span class="sk">✨${skillOf(k).name}</span></button>`;
   };
-  el.innerHTML = GROUPS.map(([label, test]) => {
+  el.innerHTML = (TESTER ? '<p class="pack-head hand">🧪 Test mode: every character is unlocked for this visit</p>' : '') + GROUPS.map(([label, test]) => {
     const keys = TEAM_ROSTER[team].filter((k) => test(CHARACTERS[k]));
     if (!keys.length) return '';
-    const open = keys.filter((k) => isUnlocked(k, progress)).length;
+    const open = keys.filter((k) => unlocked(k)).length;
     return `<p class="pack-head hand">${label}${label === 'Starters' ? '' : ` <small>${open}/${keys.length} unlocked</small>`}</p>${keys.map(card).join('')}`;
   }).join('');
   el.dataset.team = team;
@@ -1328,11 +1337,11 @@ function renderShop() {
   // Free packs first: earned with streaks, never bought. Then paid previews, clearly "coming soon".
   const free = ['Chop Bar', 'Wildlife'].map((pack) => {
     const keys = Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].pack === pack);
-    const open = keys.filter((k) => isUnlocked(k, progress)).length;
+    const open = keys.filter((k) => unlocked(k)).length;
     return `<article class="pack free">
       <h3>${pack} <small class="price">Free</small></h3>
       <p>${pack === 'Chop Bar' ? 'Six street-food sellers for the Market Crew.' : 'Six wild animals for the Forest Friends.'} Unlocked by win streaks and puzzle streaks — ${open}/6 so far.</p>
-      <div class="icons">${keys.map((k) => `<span class="char${isUnlocked(k, progress) ? '' : ' dim'}" title="${CHARACTERS[k].name} · ${isUnlocked(k, progress) ? CHARACTERS[k].kind : CHARACTERS[k].unlock.text}">${characterSVG(k, { withBase: false })}</span>`).join('')}</div>
+      <div class="icons">${keys.map((k) => `<span class="char${unlocked(k) ? '' : ' dim'}" title="${CHARACTERS[k].name} · ${unlocked(k) ? CHARACTERS[k].kind : CHARACTERS[k].unlock.text}">${characterSVG(k, { withBase: false })}</span>`).join('')}</div>
     </article>`;
   }).join('');
   const paid = PACKS.map((p) => `

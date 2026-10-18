@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Help test Dame</title>
+  <meta name="description" content="Try the new Dame before everyone else: Ghanaian draughts in a hand-drawn notebook, with characters that fly, crawl, bite and stomp.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Dame">
+  <meta property="og:title" content="Help test Dame ✏️">
+  <meta property="og:description" content="Ghanaian draughts in a hand-drawn notebook — the crocodile bites, the spider slings webs. Play a few games and tell us what you think.">
+  <meta property="og:url" content="https://codeclif.github.io/dame/test.html">
+  <meta property="og:image" content="https://codeclif.github.io/dame/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Help test Dame ✏️">
+  <meta name="twitter:image" content="https://codeclif.github.io/dame/og.jpg">
+  <meta name="theme-color" content="#fdfbf3">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Patrick+Hand&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    html, body { height: auto; }
+    body { background-attachment: scroll; min-height: 100vh; }
+    body { overflow-x: hidden; overflow-y: auto; padding: 18px 16px 40px 48px; user-select: auto; -webkit-user-select: auto; }
+    main { max-width: 460px; }
+    h1 { font: 700 40px/1.05 var(--hand); color: var(--pen); margin: 4px 0 6px; }
+    h2 { font: 700 26px/1.1 var(--hand); margin: 22px 0 6px; }
+    p, li { line-height: 1.38; }
+    ul { padding-left: 20px; margin: 6px 0; }
+    li { margin: 5px 0; }
+    .cast { display: flex; gap: 2px; margin: 4px 0 6px; }
+    .cast span { width: 54px; height: 62px; display: block; }
+    .cast svg { width: 100%; height: 100%; overflow: visible; }
+    .btn { display: block; text-align: center; text-decoration: none; color: var(--ink); background: var(--hi); border: 2.6px solid var(--ink);
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; padding: 12px 16px; font: 700 28px var(--hand); box-shadow: 3px 4px 0 var(--shadow); margin: 14px 0 10px; }
+    .btn.alt { background: var(--card); font-size: 22px; padding: 9px 14px; }
+    .btn:active { transform: translate(2px, 3px); box-shadow: none; }
+    .small { font-size: 15px; color: var(--muted); }
+    .tw { color: var(--red); font-family: var(--hand); font-size: 21px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Help test Dame</h1>
+    <div class="cast char" id="cast" aria-hidden="true"></div>
+    <p>Dame is Ghanaian draughts in a hand-drawn notebook: Forest Friends against the Market Crew. The characters come alive when they move. The crocodile bites, the spider slings webs, the elephant stomps. Thanks for playing a few games and telling us how it went!</p>
+    <a class="btn" href="./?tester">Start testing ✏️</a>
+    <a class="btn alt" href="lab.html">Watch the characters move</a>
+    <p class="small">The test link unlocks every character for your visit. You don’t need an account, and we never ask for your name, number or email.</p>
+
+    <h2>Try these</h2>
+    <ul>
+      <li><b>Play the computer</b> as <b>Forest Friends</b>. Capture with the crocodile, spider, parrot and tortoise to see their secret skills.</li>
+      <li><b>Pass and play</b> with someone next to you, on one phone.</li>
+      <li>Do the <b>daily puzzle</b>.</li>
+      <li>Open <b>How to play</b>. Is anything confusing?</li>
+      <li>In <b>Settings</b>, switch <b>Character animations</b> off and on, and try night mode.</li>
+      <li>Optional: add it to your <b>Home Screen</b> (iPhone: Share → Add to Home Screen) and open it from there, even with no internet.</li>
+    </ul>
+
+    <h2>Then tell us</h2>
+    <ul>
+      <li>What was <span class="tw">fun</span>? What was <span class="tw">boring or slow</span>?</li>
+      <li>Was anything <b>confusing</b>, or did anything <b>break</b>? A screenshot or screen recording helps a lot.</li>
+      <li>Which <b>phone</b> did you use?</li>
+    </ul>
+    <p>Just reply in the chat where you got this link.</p>
+    <a class="btn alt" href="./?tester">Play again</a>
+  </main>
+  <script type="module">
+    import { characterSVG, DEFS_SVG } from './js/characters.js';
+    document.body.insertAdjacentHTML('afterbegin', DEFS_SVG);
+    document.getElementById('cast').innerHTML = ['crocodile', 'spider', 'parrot', 'tortoise', 'trader', 'driver']
+      .map((k, i) => `<span style="--delay:-${i * 0.4}s;--blink:-${i * 0.7}s">${characterSVG(k)}</span>`).join('');
+  </script>
+</body>
+</html>

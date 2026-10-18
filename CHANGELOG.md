@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.2 — Test link
+
+- `test.html`: a page to share with testers, with a link preview, what to try and what to report back.
+- Its **Start testing** link (`?tester`) unlocks every character for that visit only. Nothing is saved, and normal players keep the usual unlocks.
+
 ## 1.9.1 — Spider's Web Sling
 
 - The spider's capture is now **Web Sling**: he rears up, shoots a silk line at the piece (THWIP!), wraps it up, then yanks and slings it right off the board before scuttling on.

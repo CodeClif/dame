@@ -118,8 +118,8 @@ const add = (svg, markup) => {
 };
 const anim = (el, frames, opts) => el.animate(frames, { fill: 'forwards', ...opts }).finished.catch(() => {});
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const word = (svg, text, color = '#d62828', y = 2) => {
-  const g = add(svg, `<text x="50" y="${y}" text-anchor="middle" font-family="Caveat, cursive" font-weight="700" font-size="22" fill="${color}" stroke="#fff" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${text}</text>`);
+const word = (svg, text, color = '#d62828', y = 2, size = 22) => {
+  const g = add(svg, `<text x="50" y="${y}" text-anchor="middle" font-family="Caveat, cursive" font-weight="700" font-size="${size}" fill="${color}" stroke="#fff" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${text}</text>`);
   anim(g, [{ transform: 'scale(.2) rotate(-12deg)', opacity: 0 }, { transform: 'scale(1.15) rotate(4deg)', opacity: 1, offset: 0.3 }, { transform: 'scale(1) rotate(-3deg)', opacity: 1, offset: 0.75 }, { opacity: 0 }], { duration: 900 });
 };
 const drawIn = (g, ms = 260, delay = 0) => {
@@ -327,9 +327,13 @@ const STRIKES = {
     return exit(victim, base, 'eaten');
   },
   async bite({ svg, victim, base }) {
-    const marks = add(svg, `<path d="M30 40l5 7 5-7 5 7 5-7 5 7 5-7 5 7 5-7" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>`);
-    anim(marks, [{ opacity: 1 }, { opacity: 0 }], { duration: 500, delay: 200 });
-    word(svg, 'CHOMP!');
+    // Two rows of big tooth marks snapping together over the piece.
+    const teeth = (y, d) => `<path d="M16 ${y}l${Array.from({ length: 8 }, (_, i) => `8.5 ${i % 2 ? -d : d}`).join(' ')}" fill="none" stroke-linejoin="round" stroke-linecap="round"`;
+    const top = add(svg, `${teeth(30, 12)} stroke="${INK}" stroke-width="8"/>${teeth(30, 12)} stroke="#fff" stroke-width="4"/>`);
+    const bottom = add(svg, `${teeth(74, -12)} stroke="${INK}" stroke-width="8"/>${teeth(74, -12)} stroke="#fff" stroke-width="4"/>`);
+    anim(top, [{ transform: 'translateY(-14px)', opacity: 0 }, { transform: 'translateY(6px)', opacity: 1, offset: 0.25 }, { transform: 'translateY(6px)', opacity: 1, offset: 0.7 }, { transform: 'translateY(6px)', opacity: 0 }], { duration: 750 });
+    anim(bottom, [{ transform: 'translateY(14px)', opacity: 0 }, { transform: 'translateY(-6px)', opacity: 1, offset: 0.25 }, { transform: 'translateY(-6px)', opacity: 1, offset: 0.7 }, { transform: 'translateY(-6px)', opacity: 0 }], { duration: 750 });
+    word(svg, 'CHOMP!', '#d62828', -4, 32);
     return exit(victim, base, 'eaten');
   },
   async stomp({ svg, victim, base, board }) {

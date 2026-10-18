@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.9.0 — All the Forest Friends come alive
+
+- Moving parts for the rest of the Forest Friends:
+  - **tortoise** plods with his head bobbing; to capture he tucks in and spins like a top through the piece (Shell Spin);
+  - **antelope** springs across in one leap, ears flopping, legs tucked; to capture she lowers her horns and tosses the piece (Horn Toss, WHEE!);
+  - **spider** scuttles on eight rippling legs; to capture he rears up and wraps the piece in a web (Web Wrap);
+  - **bush cat** crouches, ears flat, tail swishing, wiggles and pounces; she lands on the piece paws first and swipes (Pounce Swipe);
+  - **owl** turns her head to look, beats her wings and glides; she swoops down with talons out (Night Swoop);
+  - **hedgehog** scurries, nose sniffing; he curls into a spiky ball and rolls through the piece (Spike Roll).
+- Each one fidgets while waiting: the tortoise hides in his shell, the antelope flicks her ears, the spider waves a leg, the bush cat twitches an ear, the owl swivels her head, the hedgehog sniffs.
+- Crocodile: the bite now lands right on the piece, with bigger tooth marks and a bigger CHOMP!
+
 ## 1.8.0 — Characters come alive (first four)
 
 - Akua the parrot, Kwabena the crocodile, Auntie Akosua (waakye seller) and Nana Kwasi the elephant now have moving parts in the game:

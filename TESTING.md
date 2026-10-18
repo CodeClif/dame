@@ -28,6 +28,7 @@ Tick each line; if one fails, note what you saw and the time.
 - [ ] In a game, play the crocodile or parrot (Forest Friends starters) and capture: the crocodile crawls and bites, the parrot flies and dives.
 - [ ] Unlock the waakye seller or elephant later and check they walk / stomp in a game.
 - [ ] Waiting pieces now and then tilt their heads, yawn or flap their ears.
+- [ ] As Forest Friends, capture with the tortoise (spins), antelope (leaps, WHEE!) and spider (web); unlock the bush cat, owl and hedgehog and try them too.
 
 ## Install
 - [ ] Safari → Share → **Add to Home Screen**. The tortoise icon appears; open Dame from it (no Safari bars).

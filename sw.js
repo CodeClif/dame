@@ -1,5 +1,5 @@
 // Offline support: precache the whole game, then serve cache-first.
-const VERSION = 'dame-v11';
+const VERSION = 'dame-v12';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'css/style.css',
   'js/app.js', 'js/rules.js', 'js/moves.js', 'js/rigs.js', 'js/ai.js', 'js/ai-worker.js', 'js/characters.js', 'js/sketch.js', 'js/sound.js',
